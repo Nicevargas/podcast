@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --color-primary: #a13b53;
+  --color-primary-container: #e8728a;
+  --color-surface-tint: #FADADD;
+  --color-tertiary: #a63550;
+  --color-tertiary-container: #ef6d87;
+  --color-ink-subtle: #666666;
+  --color-on-surface: #1a1c1c;
+  --color-on-surface-variant: #554244;
+  --color-background-alt: #F8F8F8;
+}
+
+@layer base {
+  body {
+    @apply bg-[#f9f9f9] text-[#1a1c1c] font-sans antialiased;
+  }
+}
+
+.ambient-card {
+  box-shadow: 0px 4px 20px rgba(45, 45, 45, 0.05);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.ambient-card:hover {
+  box-shadow: 0px 12px 32px rgba(45, 45, 45, 0.1);
+  transform: translateY(-4px);
+}
+
+.glass-nav {
+  backdrop-filter: blur(12px);
+  background-color: rgba(255, 255, 255, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@keyframes wave {
+  from {
+    height: 4px;
+  }
+  to {
+    height: 100%;
+  }
+}
+
+.wave-bar {
+  animation: wave 1s infinite alternate;
+}
+

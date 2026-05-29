@@ -1,0 +1,6 @@
+{
+  "name": "Café com Internet",
+  "description": "Landing page e plataforma de agendamento para o podcast Café com Internet sobre tecnologia e cultura digital com Eunice Vargas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

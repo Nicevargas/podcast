@@ -35,6 +35,7 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
   const [authError, setAuthError] = useState("");
   const [authSuccess, setAuthSuccess] = useState("");
   const [activeTab, setActiveTab] = useState<"agenda" | "videos" | "reservas" | "mensagens">("agenda");
+  const [reservasSubTab, setReservasSubTab] = useState<"pending" | "confirmed">("pending");
 
   // DB Data States
   const [sessions, setSessions] = useState<RecordingSession[]>([]);
@@ -162,10 +163,17 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
       };
 
       await createGoogleCalendarEvent(token, eventPayload);
+      
+      // Update the reservation status inside database
+      await db.reservations.update(res.id, { status: "confirmed" });
+
       setAdminSyncResult(prev => ({
         ...prev,
-        [res.id]: { success: true, msg: "Sincronizado e compartilhado com sucesso no Google Agenda!" }
+        [res.id]: { success: true, msg: "Confirmado e integrado com sucesso ao Google Agenda!" }
       }));
+      
+      // Reload up-to-date lists
+      await loadAllData();
     } catch (err: any) {
       console.error(err);
       setAdminSyncResult(prev => ({
@@ -174,6 +182,23 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
       }));
     } finally {
       setAdminSyncingId(null);
+    }
+  };
+
+  const handleConfirmOnly = async (res: Reservation) => {
+    try {
+      await db.reservations.update(res.id, { status: "confirmed" });
+      setAdminSyncResult(prev => ({
+        ...prev,
+        [res.id]: { success: true, msg: "Agendamento confirmado com sucesso!" }
+      }));
+      await loadAllData();
+    } catch (err: any) {
+      console.error(err);
+      setAdminSyncResult(prev => ({
+        ...prev,
+        [res.id]: { success: false, msg: err?.message || "Erro ao confirmar agendamento." }
+      }));
     }
   };
 
@@ -1108,22 +1133,60 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
                   {/* --- TAB 3: RESERVAS --- */}
                   {activeTab === "reservas" && (
                     <div className="space-y-6">
-                      <div>
-                        <h3 className="font-sans font-black text-xl text-on-surface tracking-tight">
-                          👥 Listagem de Agendamentos Feitos
-                        </h3>
-                        <p className="text-neutral-500 text-xs mt-1">
-                          Veja abaixo os ouvintes que se agendaram para gravar um episódio do programa com você.
-                        </p>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                          <h3 className="font-sans font-black text-xl text-on-surface tracking-tight">
+                            👥 Listagem de Agendamentos Feitos
+                          </h3>
+                          <p className="text-neutral-500 text-xs mt-1">
+                            Veja abaixo os ouvintes que se agendaram para gravar um episódio do programa com você.
+                          </p>
+                        </div>
+                        
+                        {/* Sub-tab selection */}
+                        <div className="flex bg-neutral-100 p-1 rounded-xl shrink-0 self-start sm:self-auto border border-neutral-200/50">
+                          <button
+                            type="button"
+                            onClick={() => setReservasSubTab("pending")}
+                            className={`px-3 py-1.5 rounded-lg text-2xs font-extrabold transition-all cursor-pointer ${
+                              reservasSubTab === "pending"
+                                ? "bg-white text-primary shadow-xs"
+                                : "text-neutral-500 hover:text-neutral-800"
+                            }`}
+                          >
+                            Pendentes ({reservations.filter(r => r.status !== "confirmed").length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setReservasSubTab("confirmed")}
+                            className={`px-3 py-1.5 rounded-lg text-2xs font-extrabold transition-all cursor-pointer ${
+                              reservasSubTab === "confirmed"
+                                ? "bg-white text-primary shadow-xs"
+                                : "text-neutral-500 hover:text-neutral-800"
+                            }`}
+                          >
+                            Confirmados ({reservations.filter(r => r.status === "confirmed").length})
+                          </button>
+                        </div>
                       </div>
 
                       <div className="space-y-4">
-                        {reservations.length === 0 ? (
-                          <div className="p-12 text-center text-neutral-400 text-xs bg-neutral-50 border border-neutral-100 rounded-3xl">
-                            Nenhum participante reservou vaga até o momento. Divulgue as datas disponíveis!
-                          </div>
-                        ) : (
-                          reservations.map((res) => (
+                        {(() => {
+                          const filteredRes = reservations.filter(r => 
+                            reservasSubTab === "confirmed" ? r.status === "confirmed" : r.status !== "confirmed"
+                          );
+
+                          if (filteredRes.length === 0) {
+                            return (
+                              <div className="p-12 text-center text-neutral-400 text-xs bg-neutral-50 border border-neutral-100 rounded-3xl">
+                                {reservasSubTab === "confirmed" 
+                                  ? "Nenhum agendamento foi confirmado ou sincronizado com o Google Agenda ainda."
+                                  : "Nenhum participante com agendamento pendente de aprovação!"}
+                              </div>
+                            );
+                          }
+
+                          return filteredRes.map((res) => (
                             <div key={res.id} className="p-5 bg-white border border-neutral-100 rounded-2xl relative shadow-xs">
                               <button
                                 onClick={() => handleDeleteReservation(res.id)}
@@ -1135,7 +1198,14 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
 
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-1">
-                                  <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Gravação Escolhida</p>
+                                  <div className="flex items-center gap-1.5 mb-1.5">
+                                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Gravação Escolhida</span>
+                                    {res.status === "confirmed" ? (
+                                      <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[8px] font-extrabold rounded uppercase leading-none border border-emerald-100">CONFIRMADA</span>
+                                    ) : (
+                                      <span className="px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[8px] font-extrabold rounded uppercase leading-none border border-amber-100">AGUARDANDO APROVAÇÃO</span>
+                                    )}
+                                  </div>
                                   <p className="text-xs font-black text-primary">{res.sessionDate}</p>
                                   <p className="text-xs font-semibold text-neutral-600">{res.sessionTime}</p>
                                   <p className="text-secondary text-[10px]">{res.sessionTitle}</p>
@@ -1176,21 +1246,43 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
 
                                   {/* Admin Google sync widget */}
                                   <div className="pt-3 border-t border-neutral-100/50 mt-3 space-y-2">
-                                    {adminSyncResult[res.id]?.success ? (
-                                      <div className="p-2 bg-emerald-50 border border-emerald-100 text-emerald-800 text-[10px] font-bold rounded-lg flex items-center gap-1.5">
-                                        <Check className="w-3.5 h-3.5 text-emerald-500" />
-                                        <span>{adminSyncResult[res.id].msg}</span>
+                                    {res.status === "confirmed" ? (
+                                      <div className="flex flex-col gap-1.5">
+                                        <div className="p-2 bg-emerald-50 border border-emerald-100 text-emerald-800 text-[10px] font-bold rounded-lg flex items-center gap-1.5">
+                                          <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                          <span>{adminSyncResult[res.id]?.msg || "Agendamento confirmado com sucesso!"}</span>
+                                        </div>
+                                        {/* Re-sync option */}
+                                        <button
+                                          type="button"
+                                          onClick={() => handleAdminGoogleSync(res)}
+                                          className="text-right text-[9px] text-primary hover:underline cursor-pointer font-bold select-none block"
+                                        >
+                                          🔄 Reenviar convite ao Google Agenda
+                                        </button>
                                       </div>
                                     ) : (
                                       <div className="space-y-2">
-                                        <button
-                                          type="button"
-                                          disabled={adminSyncingId === res.id}
-                                          onClick={() => handleAdminGoogleSync(res)}
-                                          className="w-full bg-neutral-100 hover:bg-emerald-50 text-neutral-700 hover:text-emerald-800 border border-neutral-200 hover:border-emerald-200 rounded-xl py-2 px-3 text-3xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                                        >
-                                          {adminSyncingId === res.id ? "Sincronizando..." : "Sincronizar no Google Agenda"}
-                                        </button>
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                          <button
+                                            type="button"
+                                            disabled={adminSyncingId === res.id}
+                                            onClick={() => handleAdminGoogleSync(res)}
+                                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 hover:border-emerald-850 rounded-xl py-2 px-3 text-3xs font-black tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-emerald-600/10"
+                                          >
+                                            {adminSyncingId === res.id ? "Sincronizando..." : "Aprovar & Enviar Google Agenda"}
+                                          </button>
+                                          
+                                          <button
+                                            type="button"
+                                            disabled={adminSyncingId === res.id}
+                                            onClick={() => handleConfirmOnly(res)}
+                                            className="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 border border-neutral-200 rounded-xl py-2 px-3 text-3xs font-bold transition-all text-center cursor-pointer select-none"
+                                            title="Confirmar apenas localmente, sem enviar para Google Agenda"
+                                          >
+                                            Aprovar Apenas Local
+                                          </button>
+                                        </div>
 
                                         {adminSyncResult[res.id]?.msg && (
                                           <p className="text-[9px] text-red-500 bg-red-50 p-1.5 rounded border border-red-100">
@@ -1225,8 +1317,8 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
                                 </div>
                               </div>
                             </div>
-                          ))
-                        )}
+                          ));
+                        })()}
                       </div>
                     </div>
                   )}

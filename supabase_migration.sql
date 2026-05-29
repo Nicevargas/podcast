@@ -69,6 +69,9 @@ create table if not exists public.reservations (
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- Ensure status column exists on reservations
+alter table public.reservations add column if not exists status text not null default 'pending';
+
 -- FEEDBACKS / DÚVIDAS E FALE CONOSCO
 create table if not exists public.feedback (
     id text primary key,

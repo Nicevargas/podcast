@@ -26,6 +26,7 @@ export interface Reservation {
   instagram?: string;
   timestamp: string;
   guests?: Array<{ name: string; email: string }>;
+  status?: "pending" | "confirmed";
 }
 
 export interface FeedbackMessage {

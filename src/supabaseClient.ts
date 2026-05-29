@@ -333,21 +333,30 @@ export const db = {
             .from("reservations")
             .select("*")
             .order("timestamp", { ascending: false });
-          if (!error && data) return data;
+          if (!error && data) {
+            // Apply default status client-side if missing
+            return data.map(r => ({ ...r, status: r.status || "pending" }));
+          }
           console.warn("Supabase reservations fetch returned error, falling back to local:", error);
         } catch (error) {
           console.warn("Supabase reservations fetch exception, falling back to local:", error);
         }
       }
-      return JSON.parse(localStorage.getItem(SEED_DATA.reservations) || "[]");
+      const local = JSON.parse(localStorage.getItem(SEED_DATA.reservations) || "[]") as Reservation[];
+      return local.map(r => ({ ...r, status: r.status || "pending" }));
     },
 
     create: async (reservation: Reservation): Promise<Reservation> => {
+      const reservationWithStatus = {
+        ...reservation,
+        status: reservation.status || "pending"
+      };
+
       if (isSupabaseConfigured && realSupabase) {
         try {
           const { data, error } = await realSupabase
             .from("reservations")
-            .insert([reservation])
+            .insert([reservationWithStatus])
             .select();
           if (!error && data) return data[0];
           console.warn("Supabase reservation insert returned error, writing locally:", error);
@@ -357,9 +366,29 @@ export const db = {
       }
 
       const list = JSON.parse(localStorage.getItem(SEED_DATA.reservations) || "[]");
-      list.push(reservation);
+      list.push(reservationWithStatus);
       localStorage.setItem(SEED_DATA.reservations, JSON.stringify(list));
-      return reservation;
+      return reservationWithStatus;
+    },
+
+    update: async (id: string, updates: Partial<Reservation>): Promise<boolean> => {
+      if (isSupabaseConfigured && realSupabase) {
+        try {
+          const { error } = await realSupabase
+            .from("reservations")
+            .update(updates)
+            .eq("id", id);
+          if (!error) return true;
+          console.warn("Supabase reservation update returned error, writing locally:", error);
+        } catch (error) {
+          console.warn("Supabase reservation update exception, writing locally:", error);
+        }
+      }
+
+      const list = JSON.parse(localStorage.getItem(SEED_DATA.reservations) || "[]") as Reservation[];
+      const updated = list.map(r => r.id === id ? { ...r, ...updates } : r);
+      localStorage.setItem(SEED_DATA.reservations, JSON.stringify(updated));
+      return true;
     },
 
     delete: async (id: string): Promise<boolean> => {

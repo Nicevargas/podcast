@@ -25,7 +25,9 @@ import {
   Music,
   Lock,
   Compass,
-  ArrowRight
+  ArrowRight,
+  Search,
+  X
 } from "lucide-react";
 
 import { INITIAL_SESSIONS, STUDIO_LOCATIONS, PODCAST_EPISODES } from "./data";
@@ -50,6 +52,7 @@ export default function App() {
   
   // Filtering & Contact States
   const [locationFilter, setLocationFilter] = useState("Todos");
+  const [searchTerm, setSearchTerm] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactMessage, setContactMessage] = useState("");
@@ -102,6 +105,22 @@ export default function App() {
 
     loadDynamicData();
   }, []);
+
+  // Filter episodes based on search term
+  const filteredEpisodes = episodes.filter((ep) => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return true;
+    return (
+      ep.title.toLowerCase().includes(term) ||
+      (ep.guestName || "").toLowerCase().includes(term) ||
+      (ep.guestName2 || "").toLowerCase().includes(term) ||
+      (ep.guestName3 || "").toLowerCase().includes(term) ||
+      (ep.guestRole || "").toLowerCase().includes(term) ||
+      (ep.guestRole2 || "").toLowerCase().includes(term) ||
+      (ep.guestRole3 || "").toLowerCase().includes(term) ||
+      (ep.description || "").toLowerCase().includes(term)
+    );
+  });
 
   // Update session slots reactively when a reservation is confirmed
   const handleConfirmReservation = async (newReservation: Reservation) => {
@@ -597,81 +616,169 @@ export default function App() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {episodes.map((episode) => {
-              const isCurrent = currentEpisode ? episode.id === currentEpisode.id : false;
-              
-              return (
-                <div
-                  key={episode.id}
-                  className={`ambient-card flex flex-col justify-between border rounded-[24px] overflow-hidden bg-white p-5 space-y-4 transition-all duration-300 ${
-                    isCurrent ? "border-primary/30 bg-primary/[0.01]" : "border-outline-variant/10"
-                  }`}
+          {/* Barra de Busca de Episódios */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#fbfbfb] p-4 rounded-3xl border border-outline-variant/10">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-subtle" />
+              <input
+                type="text"
+                value={searchTerm || ""}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar episódios por título ou convidado..."
+                className="w-full pl-10 pr-10 py-2.5 bg-white border border-outline-variant/25 rounded-2xl text-xs text-on-surface outline-none focus:border-[#a13b53]/50 transition-colors placeholder:text-neutral-400"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-subtle hover:text-[#a13b53] transition-colors cursor-pointer"
                 >
-                  <div className="space-y-3.5">
-                    
-                    {/* Cover graphic */}
-                    <div className="relative aspect-video rounded-xl overflow-hidden bg-[#eeeeee]">
-                      <img
-                        src={episode.coverImage}
-                        alt={episode.title}
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => handlePlayEpisode(episode)}
-                          className="w-12 h-12 rounded-full bg-primary-container text-white flex items-center justify-center transform scale-90 hover:scale-100 transition-all cursor-pointer"
-                        >
-                          <Headphones className="w-5.5 h-5.5 text-white" />
-                        </button>
-                      </div>
-                      <span className="absolute bottom-2.5 right-2.5 bg-black/60 px-2.5 py-0.5 rounded-md text-white text-[10px] font-mono">
-                        {episode.duration}
-                      </span>
-                    </div>
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            
+            <div className="text-xs text-ink-subtle font-medium px-2">
+              {filteredEpisodes.length === 0 ? (
+                <span className="text-red-500 font-bold">Nenhum episódio encontrado</span>
+              ) : (
+                <span>
+                  Mostrando <strong className="text-on-surface">{filteredEpisodes.length}</strong> {filteredEpisodes.length === 1 ? "episódio" : "episódios"}
+                </span>
+              )}
+            </div>
+          </div>
 
-                    <div className="flex justify-between items-center text-[11px] text-ink-subtle font-semibold">
-                      <span>{episode.publishDate}</span>
-                      <span className="text-primary italic">Café com Internet</span>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <h3 className="font-bold text-sm text-on-surface font-sans line-clamp-1">
-                        {episode.title}
-                      </h3>
-                      <p className="text-xs text-on-surface-variant line-clamp-2 leading-relaxed">
-                        {episode.description}
-                      </p>
-                    </div>
-
-                  </div>
-
-                  {/* Play & Info footer bar */}
-                  <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
-                    <div className="text-left">
-                      <span className="block text-[10px] text-ink-subtle uppercase tracking-wider font-bold">Convidado</span>
-                      <span className="block text-xs font-bold text-primary truncate max-w-[150px]">
-                        {episode.guestName || "Eunice Vargas"}
-                      </span>
-                    </div>
-
-                    <button
-                      onClick={() => handlePlayEpisode(episode)}
-                      className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                        isCurrent && isPlaying
-                          ? "bg-primary-container text-white"
-                          : "bg-surface-tint/20 text-primary hover:bg-[#a13b53] hover:text-white"
+          {filteredEpisodes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center space-y-4 bg-neutral-50/50 rounded-3xl border border-dashed border-outline-variant/20">
+              <div className="w-16 h-16 rounded-full bg-[#FADADD]/35 flex items-center justify-center text-[#a13b53]">
+                <Search className="w-7 h-7" />
+              </div>
+              <div className="space-y-1.5 max-w-sm">
+                <h3 className="font-extrabold text-[#a13b53] text-base font-sans">Nenhum episódio encontrado</h3>
+                <p className="text-xs text-ink-subtle leading-relaxed">
+                  Não encontramos nenhum episódio correspondente a "{searchTerm}". Experimente buscar por outros termos ou nomes de convidados.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="bg-[#a13b53]/10 hover:bg-[#a13b53]/15 text-[#a13b53] rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer"
+              >
+                Limpar Filtros
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <AnimatePresence mode="popLayout">
+                {filteredEpisodes.map((episode) => {
+                  const isCurrent = currentEpisode ? episode.id === currentEpisode.id : false;
+                  
+                  return (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      key={episode.id}
+                      className={`ambient-card flex flex-col justify-between border rounded-[24px] overflow-hidden bg-white p-5 space-y-4 transition-all duration-300 ${
+                        isCurrent ? "border-primary/30 bg-primary/[0.01]" : "border-outline-variant/10"
                       }`}
                     >
-                      {isCurrent && isPlaying ? "Reproduzindo" : "Ouvir trecho"}
-                    </button>
-                  </div>
+                      <div className="space-y-3.5">
+                        
+                        {/* Cover graphic */}
+                        <div className="relative aspect-video rounded-xl overflow-hidden bg-[#eeeeee]">
+                          <img
+                            src={episode.coverImage}
+                            alt={episode.title}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handlePlayEpisode(episode)}
+                              className="w-12 h-12 rounded-full bg-primary-container text-white flex items-center justify-center transform scale-90 hover:scale-100 transition-all cursor-pointer"
+                            >
+                              <Headphones className="w-5.5 h-5.5 text-white" />
+                            </button>
+                          </div>
+                          <span className="absolute bottom-2.5 right-2.5 bg-black/60 px-2.5 py-0.5 rounded-md text-white text-[10px] font-mono">
+                            {episode.duration}
+                          </span>
+                        </div>
 
-                </div>
-              );
-            })}
-          </div>
+                        <div className="flex justify-between items-center text-[11px] text-ink-subtle font-semibold">
+                          <span>{episode.publishDate}</span>
+                          <span className="text-primary italic">Café com Internet</span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <h3 className="font-bold text-sm text-on-surface font-sans line-clamp-1">
+                            {episode.title}
+                          </h3>
+                          <p className="text-xs text-on-surface-variant line-clamp-2 leading-relaxed">
+                            {episode.description}
+                          </p>
+                        </div>
+
+                      </div>
+
+                      {/* Play & Info footer bar */}
+                      <div className="flex items-center justify-between pt-3 border-t border-neutral-100 gap-2">
+                        <div className="text-left flex-1 min-w-0">
+                          {episode.guestName2 || episode.guestName3 ? (
+                            <>
+                              <span className="block text-[10px] text-ink-subtle uppercase tracking-wider font-bold mb-0.5">Convidados</span>
+                              <div className="space-y-0.5">
+                                {[
+                                  { name: episode.guestName, role: episode.guestRole },
+                                  { name: episode.guestName2, role: episode.guestRole2 },
+                                  { name: episode.guestName3, role: episode.guestRole3 }
+                                ]
+                                  .filter(g => g.name && g.name.trim() !== "")
+                                  .map((g, idx) => (
+                                    <span key={idx} className="block text-xs text-primary truncate max-w-[180px]" title={`${g.name} - ${g.role}`}>
+                                      <strong className="font-bold">{g.name}</strong>
+                                      {g.role && <span className="text-[10px] text-ink-subtle font-normal"> ({g.role})</span>}
+                                    </span>
+                                  ))}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <span className="block text-[10px] text-ink-subtle uppercase tracking-wider font-bold">Convidado</span>
+                              <span className="block text-xs font-bold text-primary truncate max-w-[150px]" title={episode.guestName || "Eunice Vargas"}>
+                                {episode.guestName || "Eunice Vargas"}
+                              </span>
+                              {episode.guestRole && (
+                                <span className="block text-[10px] text-ink-subtle truncate max-w-[150px]" title={episode.guestRole}>
+                                  {episode.guestRole}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={() => handlePlayEpisode(episode)}
+                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                            isCurrent && isPlaying
+                              ? "bg-primary-container text-white"
+                              : "bg-surface-tint/20 text-primary hover:bg-[#a13b53] hover:text-white"
+                          }`}
+                        >
+                          {isCurrent && isPlaying ? "Reproduzindo" : "Ouvir trecho"}
+                        </button>
+                      </div>
+
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          )}
 
         </div>
       </section>
@@ -953,7 +1060,7 @@ export default function App() {
             <Linkedin className="w-4 h-4 text-primary" />
             LinkedIn
           </a>
-          <a href="#sobre" onClick={(e) => { e.preventDefault(); scrollToSection("sobre"); }} className="hover:text-[#a13b53] transition-colors">
+          <a href="https://adesampa.com.br/estudios-de-gravacao/" target="_blank" rel="noreferrer" className="hover:text-[#a13b53] transition-colors">
             Sobre o SampaCast
           </a>
         </div>

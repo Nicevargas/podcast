@@ -175,8 +175,19 @@ export default function PodcastPlayer({
             <div className="flex items-center gap-2 mt-0.5 text-xs text-on-surface-variant truncate">
               {currentEpisode.guestName ? (
                 <>
-                  <span className="font-medium text-primary">Convidado:</span>
-                  <span className="truncate">{currentEpisode.guestName} ({currentEpisode.guestRole})</span>
+                  <span className="font-medium text-primary">
+                    {[currentEpisode.guestName2, currentEpisode.guestName3].filter(Boolean).length > 0 ? "Convidados:" : "Convidado:"}
+                  </span>
+                  <span className="truncate">
+                    {[
+                      { name: currentEpisode.guestName, role: currentEpisode.guestRole },
+                      { name: currentEpisode.guestName2, role: currentEpisode.guestRole2 },
+                      { name: currentEpisode.guestName3, role: currentEpisode.guestRole3 }
+                    ]
+                      .filter(g => g.name && g.name.trim() !== "")
+                      .map(g => `${g.name}${g.role ? ` (${g.role})` : ""}`)
+                      .join(", ")}
+                  </span>
                 </>
               ) : (
                 <span>EP Solo · Com Eunice Vargas</span>

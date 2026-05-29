@@ -64,7 +64,11 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
     publishDate: "",
     coverImage: "",
     guestName: "",
-    guestRole: ""
+    guestRole: "",
+    guestName2: "",
+    guestRole2: "",
+    guestName3: "",
+    guestRole3: ""
   });
 
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -328,7 +332,11 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
           publishDate: episodeForm.publishDate || "Hoje",
           coverImage: episodeForm.coverImage || "https://agencia.curtatche.com.br/podcast_episodio2.jpeg",
           guestName: episodeForm.guestName || undefined,
-          guestRole: episodeForm.guestRole || undefined
+          guestRole: episodeForm.guestRole || undefined,
+          guestName2: episodeForm.guestName2 || undefined,
+          guestRole2: episodeForm.guestRole2 || undefined,
+          guestName3: episodeForm.guestName3 || undefined,
+          guestRole3: episodeForm.guestRole3 || undefined
         });
         setActionSuccess("Novo episódio/vídeo cadastrado com link externo!");
       }
@@ -341,7 +349,11 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
         publishDate: "",
         coverImage: "",
         guestName: "",
-        guestRole: ""
+        guestRole: "",
+        guestName2: "",
+        guestRole2: "",
+        guestName3: "",
+        guestRole3: ""
       });
       setEditingEpisodeId(null);
       await loadAllData();
@@ -876,8 +888,8 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
                           />
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          <div>
+                        <div className="grid grid-cols-1 gap-4">
+                          <div className="w-full md:w-1/3">
                             <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Duração (MM:SS)</label>
                             <input
                               type="text"
@@ -888,25 +900,82 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
                               className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
                             />
                           </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Nome do Convidado</label>
-                            <input
-                              type="text"
-                              placeholder="ex: Marcos Silva"
-                              value={episodeForm.guestName || ""}
-                              onChange={(e) => setEpisodeForm({...episodeForm, guestName: e.target.value})}
-                              className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Cargo/Profissão do Convidado</label>
-                            <input
-                              type="text"
-                              placeholder="ex: Designer de Produto"
-                              value={episodeForm.guestRole || ""}
-                              onChange={(e) => setEpisodeForm({...episodeForm, guestRole: e.target.value})}
-                              className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
-                            />
+
+                          <div className="border border-neutral-200 p-4 rounded-2xl bg-white space-y-4">
+                            <p className="font-semibold text-xs text-neutral-700">👥 Convidados Participantes (Até 3)</p>
+                            
+                            {/* Convidado 1 */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-3 border-b border-neutral-100">
+                              <div>
+                                <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Convidado 1: Nome Completo</label>
+                                <input
+                                  type="text"
+                                  placeholder="ex: Marcos Silva"
+                                  value={episodeForm.guestName || ""}
+                                  onChange={(e) => setEpisodeForm({...episodeForm, guestName: e.target.value})}
+                                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Convidado 1: Cargo/Profissão</label>
+                                <input
+                                  type="text"
+                                  placeholder="ex: Designer de Produto"
+                                  value={episodeForm.guestRole || ""}
+                                  onChange={(e) => setEpisodeForm({...episodeForm, guestRole: e.target.value})}
+                                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Convidado 2 */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-3 border-b border-neutral-100">
+                              <div>
+                                <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Convidado 2: Nome Completo</label>
+                                <input
+                                  type="text"
+                                  placeholder="ex: Carol Azevedo"
+                                  value={episodeForm.guestName2 || ""}
+                                  onChange={(e) => setEpisodeForm({...episodeForm, guestName2: e.target.value})}
+                                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Convidado 2: Cargo/Profissão</label>
+                                <input
+                                  type="text"
+                                  placeholder="ex: Diretora de Operações"
+                                  value={episodeForm.guestRole2 || ""}
+                                  onChange={(e) => setEpisodeForm({...episodeForm, guestRole2: e.target.value})}
+                                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Convidado 3 */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Convidado 3: Nome Completo</label>
+                                <input
+                                  type="text"
+                                  placeholder="ex: Dr. Fábio Reis"
+                                  value={episodeForm.guestName3 || ""}
+                                  onChange={(e) => setEpisodeForm({...episodeForm, guestName3: e.target.value})}
+                                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Convidado 3: Cargo/Profissão</label>
+                                <input
+                                  type="text"
+                                  placeholder="ex: Psicólogo & Empreendedor"
+                                  value={episodeForm.guestRole3 || ""}
+                                  onChange={(e) => setEpisodeForm({...episodeForm, guestRole3: e.target.value})}
+                                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
+                                />
+                              </div>
+                            </div>
+
                           </div>
                         </div>
 
@@ -951,7 +1020,11 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
                                   publishDate: "",
                                   coverImage: "",
                                   guestName: "",
-                                  guestRole: ""
+                                  guestRole: "",
+                                  guestName2: "",
+                                  guestRole2: "",
+                                  guestName3: "",
+                                  guestRole3: ""
                                 });
                               }}
                               className="bg-neutral-200 hover:bg-neutral-300 text-neutral-700 px-4 py-2.5 rounded-xl font-bold text-xs transition-colors cursor-pointer"
@@ -986,9 +1059,20 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
                                     <p className="text-[10px] font-bold text-neutral-400">{ep.publishDate} · {ep.duration}</p>
                                     <h5 className="font-sans font-bold text-xs text-on-surface truncate" title={ep.title}>{ep.title}</h5>
                                     {ep.guestName && (
-                                      <p className="text-[10px] text-primary truncate">
-                                        Convidado: <strong>{ep.guestName}</strong> ({ep.guestRole})
-                                      </p>
+                                      <div className="text-[10px] text-primary space-y-0.5 mt-1">
+                                        <p className="uppercase text-[8px] font-black tracking-wider text-neutral-400 mb-0.5">Convidados:</p>
+                                        {[
+                                          { name: ep.guestName, role: ep.guestRole },
+                                          { name: ep.guestName2, role: ep.guestRole2 },
+                                          { name: ep.guestName3, role: ep.guestRole3 }
+                                        ]
+                                          .filter(g => g.name && g.name.trim() !== "")
+                                          .map((g, idx) => (
+                                            <p key={idx} className="truncate leading-tight">
+                                              • <strong>{g.name}</strong> {g.role ? `(${g.role})` : ""}
+                                            </p>
+                                          ))}
+                                      </div>
                                     )}
                                   </div>
                                 </div>

@@ -46,4 +46,8 @@ export interface PodcastEpisode {
   coverImage: string;
   guestName?: string;
   guestRole?: string;
+  guestName2?: string;
+  guestRole2?: string;
+  guestName3?: string;
+  guestRole3?: string;
 }

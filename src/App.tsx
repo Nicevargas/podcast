@@ -83,12 +83,22 @@ export default function App() {
       // Fetch dynamic sessions
       const fetchedSessions = await db.sessions.list();
 
-      // Get saved reservations to calculate spot limits
+      // Get all reservations from the database to accurately calculate spots left
+      const allReservas = await db.reservations.list();
+
+      // Synchronize current browser's local reservations with actual database status (e.g. if confirmed by Admin)
       const storedReservations = localStorage.getItem("cafe_internet_reservations");
-      const loadedReservas: Reservation[] = storedReservations ? JSON.parse(storedReservations) : [];
+      const userReservas: Reservation[] = storedReservations ? JSON.parse(storedReservations) : [];
+      
+      const syncedUserReservas = userReservas.map(userRes => {
+        const dbRes = allReservas.find(r => r.id === userRes.id);
+        return dbRes ? { ...userRes, status: dbRes.status } : userRes;
+      });
+      setReservations(syncedUserReservas);
+      localStorage.setItem("cafe_internet_reservations", JSON.stringify(syncedUserReservas));
 
       const updatedSessions = fetchedSessions.map((sess) => {
-        const bookingsForSession = loadedReservas.filter((res) => res.sessionId === sess.id);
+        const bookingsForSession = allReservas.filter((res) => res.sessionId === sess.id);
         const spotsLeft = Math.max(0, sess.totalSpots - bookingsForSession.length);
         return { ...sess, spotsLeft };
       });
@@ -100,7 +110,7 @@ export default function App() {
 
   // Load state on mount
   useEffect(() => {
-    // Get saved reservations
+    // Initial fetch of saved user reservations
     const storedReservations = localStorage.getItem("cafe_internet_reservations");
     const loadedReservas: Reservation[] = storedReservations ? JSON.parse(storedReservations) : [];
     setReservations(loadedReservas);

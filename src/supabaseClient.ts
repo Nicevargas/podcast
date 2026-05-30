@@ -327,6 +327,7 @@ export const db = {
   // --- RESERVATIONS ---
   reservations: {
     list: async (): Promise<Reservation[]> => {
+      let results: Reservation[] = [];
       if (isSupabaseConfigured && realSupabase) {
         try {
           const { data, error } = await realSupabase
@@ -334,21 +335,50 @@ export const db = {
             .select("*")
             .order("timestamp", { ascending: false });
           if (!error && data) {
-            // Apply default status client-side if missing
-            return data.map(r => ({
+            results = data.map(r => ({
               ...r,
               status: r.status || "pending",
               imageConsent: r.imageConsent ?? r.image_consent ?? false,
               checkInTimestamp: r.checkInTimestamp ?? r.check_in_timestamp ?? undefined
             }));
+          } else {
+            console.warn("Supabase reservations fetch returned error, falling back to local:", error);
           }
-          console.warn("Supabase reservations fetch returned error, falling back to local:", error);
         } catch (error) {
           console.warn("Supabase reservations fetch exception, falling back to local:", error);
         }
       }
+
+      // Read fallback data sources
       const local = JSON.parse(localStorage.getItem(SEED_DATA.reservations) || "[]") as Reservation[];
-      return local.map(r => ({ ...r, status: r.status || "pending" }));
+      const clientLocal = JSON.parse(localStorage.getItem("cafe_internet_reservations") || "[]") as Reservation[];
+
+      // Unify and merge all sources by reservation id to offer seamless cross-sync
+      const mergedMap = new Map<string, Reservation>();
+
+      results.forEach(r => mergedMap.set(r.id, r));
+
+      local.forEach(r => {
+        if (!mergedMap.has(r.id)) {
+          mergedMap.set(r.id, { ...r, status: r.status || "pending" });
+        } else {
+          const existing = mergedMap.get(r.id)!;
+          mergedMap.set(r.id, { ...existing, ...r, status: existing.status || r.status || "pending" });
+        }
+      });
+
+      clientLocal.forEach(r => {
+        if (!mergedMap.has(r.id)) {
+          mergedMap.set(r.id, { ...r, status: r.status || "pending" });
+        } else {
+          const existing = mergedMap.get(r.id)!;
+          mergedMap.set(r.id, { ...existing, ...r, status: existing.status || r.status || "pending" });
+        }
+      });
+
+      return Array.from(mergedMap.values()).sort((a, b) => {
+        return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime();
+      });
     },
 
     create: async (reservation: Reservation): Promise<Reservation> => {
@@ -372,9 +402,20 @@ export const db = {
         }
       }
 
-      const list = JSON.parse(localStorage.getItem(SEED_DATA.reservations) || "[]");
-      list.push(reservationWithStatus);
-      localStorage.setItem(SEED_DATA.reservations, JSON.stringify(list));
+      // Save to SEED_DATA.reservations ("cafe_reservations_data")
+      const list = JSON.parse(localStorage.getItem(SEED_DATA.reservations) || "[]") as Reservation[];
+      if (!list.some(r => r.id === reservationWithStatus.id)) {
+        list.push(reservationWithStatus);
+        localStorage.setItem(SEED_DATA.reservations, JSON.stringify(list));
+      }
+
+      // Synchronize with cafe_internet_reservations (user browser key)
+      const clientList = JSON.parse(localStorage.getItem("cafe_internet_reservations") || "[]") as Reservation[];
+      if (!clientList.some(r => r.id === reservationWithStatus.id)) {
+        clientList.push(reservationWithStatus);
+        localStorage.setItem("cafe_internet_reservations", JSON.stringify(clientList));
+      }
+
       return reservationWithStatus;
     },
 
@@ -392,9 +433,16 @@ export const db = {
         }
       }
 
+      // Update SEED_DATA.reservations ("cafe_reservations_data")
       const list = JSON.parse(localStorage.getItem(SEED_DATA.reservations) || "[]") as Reservation[];
       const updated = list.map(r => r.id === id ? { ...r, ...updates } : r);
       localStorage.setItem(SEED_DATA.reservations, JSON.stringify(updated));
+
+      // Update cafe_internet_reservations (user browser key)
+      const clientList = JSON.parse(localStorage.getItem("cafe_internet_reservations") || "[]") as Reservation[];
+      const clientUpdated = clientList.map(r => r.id === id ? { ...r, ...updates } : r);
+      localStorage.setItem("cafe_internet_reservations", JSON.stringify(clientUpdated));
+
       return true;
     },
 
@@ -412,9 +460,16 @@ export const db = {
         }
       }
 
+      // Delete from SEED_DATA.reservations ("cafe_reservations_data")
       const list = JSON.parse(localStorage.getItem(SEED_DATA.reservations) || "[]") as Reservation[];
       const filtered = list.filter(r => r.id !== id);
       localStorage.setItem(SEED_DATA.reservations, JSON.stringify(filtered));
+
+      // Delete from cafe_internet_reservations (user browser key)
+      const clientList = JSON.parse(localStorage.getItem("cafe_internet_reservations") || "[]") as Reservation[];
+      const clientFiltered = clientList.filter(r => r.id !== id);
+      localStorage.setItem("cafe_internet_reservations", JSON.stringify(clientFiltered));
+
       return true;
     }
   },

@@ -20,6 +20,7 @@ export default function ReservationModal({
     instagram: string;
     topic: string;
     consent: boolean;
+    imageConsent: boolean;
     guests: Array<{ name: string; email: string }>;
   }>({
     name: "",
@@ -28,8 +29,11 @@ export default function ReservationModal({
     instagram: "",
     topic: "",
     consent: false,
+    imageConsent: false,
     guests: [],
   });
+
+  const [showImageTerms, setShowImageTerms] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSuccess, setIsSuccess] = useState(false);
@@ -179,6 +183,10 @@ export default function ReservationModal({
       tempErrors.consent = "Você deve autorizar o contato para confirmação da gravação.";
     }
 
+    if (!formData.imageConsent) {
+      tempErrors.imageConsent = "Você deve concordar com o Termo de Direito de Uso de Imagem, Voz e LGPD para prosseguir.";
+    }
+
     // Validate guests if added
     formData.guests.forEach((guest, index) => {
       if (!guest.name.trim()) {
@@ -212,6 +220,7 @@ export default function ReservationModal({
       topic: formData.topic,
       instagram: formData.instagram ? `@${formData.instagram.replace("@", "")}` : "",
       timestamp: new Date().toISOString(),
+      imageConsent: formData.imageConsent,
       guests: formData.guests.filter(g => g.name.trim() !== ""),
     };
 
@@ -445,6 +454,51 @@ export default function ReservationModal({
                 </label>
               </div>
               {errors.consent && <p className="text-xs text-red-500">{errors.consent}</p>}
+
+              <div className="flex flex-col gap-1.5 pt-2 border-t border-neutral-100 mt-2">
+                <div className="flex items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    id="image-consent-check"
+                    checked={formData.imageConsent}
+                    onChange={(e) => setFormData({ ...formData, imageConsent: e.target.checked })}
+                    className="mt-1 h-4.5 w-4.5 rounded border-outline-variant/50 text-primary focus:ring-primary accent-[#a13b53] cursor-pointer"
+                  />
+                  <label htmlFor="image-consent-check" className="text-xs text-on-surface-variant leading-relaxed select-none cursor-pointer">
+                    Autorizo o uso de minha imagem e voz para fins de gravação, veiculação e cortes do podcast Café com Internet, termo em conformidade com a LGPD. <span className="text-primary">*</span>
+                  </label>
+                </div>
+                {errors.imageConsent && <p className="text-xs text-red-500 font-medium">{errors.imageConsent}</p>}
+                
+                <button
+                  type="button"
+                  onClick={() => setShowImageTerms(!showImageTerms)}
+                  className="text-[11px] text-[#a13b53] hover:underline font-bold text-left ml-7 flex items-center gap-1 cursor-pointer"
+                >
+                  {showImageTerms ? "▲ Ocultar Termo Completo e Informações LGPD" : "▼ Ler Termo Completo de Uso de Imagem e LGPD"}
+                </button>
+
+                {showImageTerms && (
+                  <div className="ml-7 mt-2 p-3 bg-neutral-50/85 border border-dashed border-neutral-300 rounded-xl text-[10px] leading-relaxed text-[#5f5e5e] max-h-40 overflow-y-auto space-y-2 text-justify select-none font-sans">
+                    <p className="font-bold text-neutral-800 text-center uppercase tracking-wide text-[9px] mb-1">Carta de Consentimento e Cessão de Direitos de Imagem/Voz</p>
+                    <p>
+                      Pelo presente termo de autorização, na qualidade de participante, convidado ou entrevistado do programa de podcast denominado <strong>CAFÉ COM INTERNET</strong>, de autoria e apresentação da jornalista <strong>Eunice Vargas</strong>, manifesto minha expressa concordância nas seguintes disposições:
+                    </p>
+                    <p>
+                      <strong>1. Objeto da Cessão:</strong> Autorizo de livre e espontânea vontade, a título gratuito e sem qualquer ônus financeiro atual ou futuro, a captação, fixação e entrega do meu depoimento, nome, imagem, e voz fornecidos durante as gravações.
+                    </p>
+                    <p>
+                      <strong>2. Finalidade:</strong> A presente cessão confere ao programa toda a autorização para veicular as mídias captadas em formato de áudio (Spotify, Apple Podcasts, etc.), vídeo (YouTube), trechos de cortes (Instagram, TikTok, LinkedIn) e materiais gráficos promocionais na internet aberta de forma global.
+                    </p>
+                    <p>
+                      <strong>3. Direito de Edição:</strong> Fica garantido à produção o direito de realizar edições, cortes e tratamentos de áudio/vídeo julgados pertinentes para a qualidade do material final, resguardando meu respeito e integridade.
+                    </p>
+                    <p>
+                      <strong>4. Confiavel e LGPD:</strong> Estando ciente das disposições legais relativas à proteção de dados (Lei nº 13.709/2018 - LGPD), dou meu consentimento livre e informado para o devido tratamento, salvaguarda e armazenamento dos meus dados cadastrais unicamente para a produção do programa.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Confirm Submit button */}

@@ -89,7 +89,7 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
     setAdminSyncingId(res.id);
     setAdminSyncResult(prev => ({ ...prev, [res.id]: { success: false, msg: "" } }));
 
-    const clientIdToUse = adminCustomClientId.trim() || (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || "";
+    const clientIdToUse = adminCustomClientId.trim() || import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
     if (!clientIdToUse) {
       setAdminSyncResult(prev => ({
         ...prev,
@@ -1345,7 +1345,7 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
                                           </p>
                                         )}
 
-                                        {(!(import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || showAdminClientId) && (
+                                        {(!import.meta.env.VITE_GOOGLE_CLIENT_ID || showAdminClientId) && (
                                           <div className="p-2 bg-neutral-50 border border-neutral-200 rounded-lg space-y-1">
                                             <button
                                               type="button"

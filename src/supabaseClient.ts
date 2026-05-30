@@ -3,8 +3,8 @@ import { RecordingSession, PodcastEpisode, Reservation, FeedbackMessage } from "
 import { INITIAL_SESSIONS, PODCAST_EPISODES } from "./data";
 
 // Retrieve environment variables
-const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || "";
-const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || "";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
 // Check if credentials are correct & available
 export const isSupabaseConfigured =

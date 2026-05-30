@@ -63,7 +63,7 @@ export function authenticateGoogleCalendar(clientId: string): Promise<string> {
     }
 
     // Default Client ID fallback or placeholder check
-    const cleanClientId = clientId?.trim() || (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || "";
+    const cleanClientId = clientId?.trim() || import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
     if (!cleanClientId) {
       reject(new Error("Google Client ID não configurado. Por favor, especifique o Google Client ID nas configurações de Secrets da plataforma ou na caixa de testes."));
       return;

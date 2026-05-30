@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Coffee, Menu, X, Sparkles, CalendarCheck2, HeartHandshake, Lock, UserCheck } from "lucide-react";
+import { db } from "../supabaseClient";
 
 interface HeaderProps {
   onScrollToSection: (sectionId: string) => void;
@@ -38,7 +39,7 @@ export default function Header({
         {/* Brand / Logo */}
         <div 
           onClick={() => handleNavClick("inicio")}
-          className="flex items-center cursor-pointer group py-1"
+          className="flex items-center cursor-pointer group py-1 animate-in fade-in duration-200"
         >
           <div className="h-16 w-16 md:h-24 md:w-24 rounded-2xl overflow-hidden flex items-center justify-center shadow-lg shadow-[#000]/5 group-hover:scale-105 group-hover:rotate-1 md:translate-y-2.5 transition-all duration-300 bg-white p-1 border border-neutral-100/40">
             <img
@@ -51,7 +52,7 @@ export default function Header({
         </div>
 
         {/* Desktop Navigation links */}
-        <div className="hidden md:flex items-center gap-6lg md:gap-8">
+        <div className="hidden md:flex items-center gap-6 md:gap-8">
           {navItems.map((item) => (
             <button
               key={item.id}
@@ -61,6 +62,19 @@ export default function Header({
               {item.label}
             </button>
           ))}
+
+          {/* Database connection badge */}
+          <div 
+            className={`font-mono text-[10px] font-bold px-2.5 py-1 rounded-full border flex items-center gap-1.5 transition-all ${
+              db.isOnline() 
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                : "bg-amber-50 text-amber-700 border-amber-200"
+            }`}
+            title={db.isOnline() ? "Os dados estão salvando diretamente no Supabase!" : "Salvando no armazenamento local do navegador. Configure o Supabase no painel Secrets."}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${db.isOnline() ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+            <span>DB: {db.isOnline() ? "ONLINE" : "OFFLINE / LOCAL"}</span>
+          </div>
 
           {/* Admin panel button */}
           <button
@@ -149,6 +163,18 @@ export default function Header({
           </div>
 
           <div className="flex flex-col gap-3.5 pt-3">
+            {/* Mobile Database connection badge */}
+            <div 
+              className={`font-mono text-center text-[10px] font-bold py-2 px-3 rounded-full border flex items-center justify-center gap-1.5 transition-all ${
+                db.isOnline() 
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                  : "bg-amber-50 text-amber-700 border-amber-200"
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${db.isOnline() ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+              <span>DADOS: {db.isOnline() ? "NUVEM (SUPABASE ONLINE)" : "LOCAL / SANDBOX OFFLINE"}</span>
+            </div>
+
             <button
               onClick={() => {
                 setMobileMenuOpen(false);

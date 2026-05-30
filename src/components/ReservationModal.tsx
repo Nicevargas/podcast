@@ -72,7 +72,7 @@ export default function ReservationModal({
     setSyncSuccess(null);
     setSyncError(null);
 
-    const clientIdToUse = customClientId.trim() || (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || "";
+    const clientIdToUse = customClientId.trim() || import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
     if (!clientIdToUse) {
       setSyncError("É necessário o Google Client ID. Por favor, insira um Client ID nas configurações de teste abaixo para prosseguir.");
       setShowClientIdInput(true);
@@ -526,7 +526,7 @@ export default function ReservationModal({
                   )}
 
                   {/* Show testing Client ID box if not configured */}
-                  {(!(import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || showClientIdInput) && (
+                  {(!import.meta.env.VITE_GOOGLE_CLIENT_ID || showClientIdInput) && (
                     <div className="bg-white border border-emerald-100 p-3 rounded-lg space-y-2 mt-2">
                       <button
                         type="button"

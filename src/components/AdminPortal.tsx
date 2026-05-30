@@ -1369,10 +1369,36 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
                                         </div>
 
                                         {adminSyncResult[res.id]?.msg && (
-                                          <p className="text-[9px] text-red-500 bg-red-50 p-1.5 rounded border border-red-100">
-                                            {adminSyncResult[res.id].msg}
-                                          </p>
+                                          <div className="space-y-2 mt-2">
+                                            <p className="text-[9px] text-red-500 bg-red-50 p-1.5 rounded border border-red-100 font-medium">
+                                              ⚠️ {adminSyncResult[res.id].msg}
+                                            </p>
+                                            {(adminSyncResult[res.id].msg.toLowerCase().includes("origin") || adminSyncResult[res.id].msg.toLowerCase().includes("autoriz") || adminSyncResult[res.id].msg.toLowerCase().includes("id") || showAdminClientId) && (
+                                              <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-[10px] text-amber-800 space-y-1 mt-2 text-left leading-normal font-sans">
+                                                <span className="font-bold block text-amber-900 text-[10px]">💡 Erro de Origem OAuth Google:</span>
+                                                <p className="text-[10px] text-amber-800 font-normal">
+                                                  Como o app roda em ambiente sandbox dinâmico de desenvolvimento, adicione esta URL de origem específica no seu ID de Cliente OAuth no Google Cloud:
+                                                </p>
+                                                <ol className="list-decimal pl-3.5 space-y-1 font-semibold text-[10px]">
+                                                  <li>Abra o <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="underline font-bold hover:text-amber-950 font-sans">GCP Credentials</a>.</li>
+                                                  <li>Em <strong>Origens JavaScript autorizadas</strong>, adicione:
+                                                    <div className="mt-0.5 bg-white border border-amber-300 rounded px-1.5 py-0.5 font-mono text-[9px] text-neutral-700 select-all font-normal">
+                                                      {window.location.origin}
+                                                    </div>
+                                                  </li>
+                                                  <li>Em <strong>URIs de redirecionamento autorizados</strong> (com barra/):
+                                                    <div className="mt-0.5 bg-white border border-amber-300 rounded px-1.5 py-0.5 font-mono text-[9px] text-neutral-700 select-all font-normal">
+                                                      {window.location.origin}/
+                                                    </div>
+                                                  </li>
+                                                  <li>Salve no GCP e tente novamente após cerca de 1 minuto.</li>
+                                                </ol>
+                                              </div>
+                                            )}
+                                          </div>
                                         )}
+
+                                        {false && adminSyncResult[res.id]?.msg && <div />}
 
                                         {(!import.meta.env.VITE_GOOGLE_CLIENT_ID || showAdminClientId) && (
                                           <div className="p-2 bg-neutral-50 border border-neutral-200 rounded-lg space-y-1">

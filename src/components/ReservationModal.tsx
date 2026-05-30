@@ -532,9 +532,33 @@ export default function ReservationModal({
                   </button>
 
                   {syncError && (
-                    <p className="text-[11px] text-red-600 font-medium leading-relaxed bg-red-50 p-2.5 rounded-lg border border-red-200/50 animate-in fade-in duration-200">
-                      ⚠️ {syncError}
-                    </p>
+                    <div className="space-y-3 animate-in fade-in duration-200 text-left">
+                      <p className="text-[11px] text-red-600 font-medium leading-relaxed bg-red-50 p-2.5 rounded-lg border border-red-200/50">
+                        ⚠️ {syncError}
+                      </p>
+                      
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[11px] text-amber-800 space-y-1.5 leading-relaxed">
+                        <span className="font-bold block">💡 Como resolver Erro de Autorização ou "origin_mismatch":</span>
+                        <p>
+                          Como o aplicativo roda em um ambiente sandbox dinâmico de desenvolvimento, você precisa cadastrar esta URL de origem específica do seu app na lista de origens do seu ID de Cliente OAuth do Google Cloud:
+                        </p>
+                        <ol className="list-decimal pl-4 space-y-1 font-medium">
+                          <li>Acesse o <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="underline font-bold hover:text-amber-950">GCP Credentials</a>.</li>
+                          <li>Edite seu <strong>ID de cliente OAuth 2.0 (Web Application)</strong>.</li>
+                          <li>Adicione em <strong>Origens JavaScript autorizadas</strong> este valor:
+                            <div className="mt-1 bg-white border border-amber-300 rounded px-2 py-1 font-mono text-[10px] text-neutral-700 select-all font-normal">
+                              {window.location.origin}
+                            </div>
+                          </li>
+                          <li>Adicione também como <strong>Uris de redirecionamento autorizadas</strong> (com barra ao final):
+                            <div className="mt-1 bg-white border border-amber-300 rounded px-2 py-1 font-mono text-[10px] text-neutral-700 select-all font-normal">
+                              {window.location.origin}/
+                            </div>
+                          </li>
+                          <li>Clique em <strong>Salvar</strong> e repita a sincronização após cerca de 1 minuto.</li>
+                        </ol>
+                      </div>
+                    </div>
                   )}
 
                   {/* Show testing Client ID box if not configured */}

@@ -427,8 +427,22 @@ export const db = {
         realSupabase
           .from("reservations")
           .insert([savedRes])
-          .then(({ error }: any) => {
-            if (error) console.warn("Supabase background reservation insertion error:", error);
+          .then(async ({ error }: any) => {
+            if (error) {
+              console.warn("Supabase background reservation insertion failed, retrying with sanitized payload:", error);
+              // Retry without 'guests' list to avoid "column 'guests' does not exist" error
+              const { guests, ...sanitizedPayload } = savedRes;
+              const retryResult = await realSupabase
+                .from("reservations")
+                .insert([sanitizedPayload]);
+              if (retryResult.error) {
+                console.error("Supabase sanitized insertion also failed:", retryResult.error);
+              } else {
+                console.log("Supabase reservation insertion succeeded after removing 'guests' column.");
+              }
+            } else {
+              console.log("Supabase reservation insertion succeeded with full payload.");
+            }
           })
           .catch((e: any) => console.warn("Supabase reservation insert exception:", e));
       }
@@ -456,8 +470,22 @@ export const db = {
           .from("reservations")
           .update(updates)
           .eq("id", id)
-          .then(({ error }: any) => {
-            if (error) console.warn("Supabase background reservation update error:", error);
+          .then(async ({ error }: any) => {
+            if (error) {
+              console.warn("Supabase background reservation update failed, retrying with sanitized updates:", error);
+              const { guests, ...sanitizedUpdates } = updates;
+              const retryResult = await realSupabase
+                .from("reservations")
+                .update(sanitizedUpdates)
+                .eq("id", id);
+              if (retryResult.error) {
+                console.error("Supabase sanitized update also failed:", retryResult.error);
+              } else {
+                console.log("Supabase reservation update succeeded after removing 'guests' column.");
+              }
+            } else {
+              console.log("Supabase reservation update succeeded with full updates.");
+            }
           })
           .catch((e: any) => console.warn("Supabase reservation update exception:", e));
       }

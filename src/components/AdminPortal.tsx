@@ -117,17 +117,29 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
       const startIso = formatToISO(session.day, session.month, session.year, session.timeStart);
       const endIso = formatToISO(session.day, session.month, session.year, session.timeEnd);
       
-      const attendees = [
-        { email: res.email, displayName: res.name }
-      ];
+      const attendeesMap = new Map<string, string>();
       
+      // 1. Participant email
+      if (res.email && res.email.trim()) {
+        attendeesMap.set(res.email.trim().toLowerCase(), res.name || "Participante");
+      }
+      
+      // 2. Curtatche (host) email
+      attendeesMap.set("curtatche@gmail.com", "Café com Internet (Curtatche)");
+      
+      // 3. Guests
       if (res.guests && res.guests.length > 0) {
         res.guests.forEach(g => {
-          if (g.email.trim() && g.name.trim()) {
-            attendees.push({ email: g.email.trim(), displayName: g.name.trim() });
+          if (g.email && g.email.trim() && g.name && g.name.trim()) {
+            attendeesMap.set(g.email.trim().toLowerCase(), g.name.trim());
           }
         });
       }
+      
+      const attendees = Array.from(attendeesMap.entries()).map(([email, name]) => ({
+        email,
+        displayName: name
+      }));
       
       const guestInfoText = res.guests && res.guests.length > 0 
         ? res.guests.map((g, i) => `   Convidado ${i + 1}: ${g.name} (${g.email})`).join("\n")

@@ -243,6 +243,21 @@ export default function App() {
   // Available unique locations for filter bar
   const locationOptions = ["Todos", "Teia Centro Histórico", "Teia Vergueiro", "Teia Pinheiros"];
 
+  // Find the latest registered podcast episode safely
+  const latestEpisode = (() => {
+    const listToSearch = episodes.length > 0 ? episodes : PODCAST_EPISODES;
+    if (listToSearch.length === 0) return null;
+    const sorted = [...listToSearch].sort((a, b) => {
+      const parseId = (idStr: string) => {
+        const cleaned = idStr.replace("ep-", "");
+        const num = parseInt(cleaned, 10);
+        return isNaN(num) ? 0 : num;
+      };
+      return parseId(b.id) - parseId(a.id);
+    });
+    return sorted[0];
+  })();
+
   return (
     <div className="min-h-screen bg-[#f9f9f9] pb-32 pt-20 flex flex-col font-sans selection:bg-[#FADADD] selection:text-[#620726]">
       
@@ -325,20 +340,28 @@ export default function App() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.8 }}
-                className="relative aspect-square rounded-[36px] overflow-hidden shadow-2xl bg-[#eeeeee] group"
+                className="relative aspect-square rounded-[36px] overflow-hidden shadow-2xl bg-neutral-950 flex items-center justify-center group"
               >
+                {latestEpisode && (
+                  <img
+                    src={latestEpisode.coverImage}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-30 select-none pointer-events-none"
+                  />
+                )}
                 <img
-                  src="https://agencia.curtatche.com.br/podcast_episodio2.jpeg"
-                  alt="Conversas sobre o universo digital"
+                  src={latestEpisode?.coverImage || "https://agencia.curtatche.com.br/podcast_episodio2.jpeg"}
+                  alt={latestEpisode?.title || "Conversas sobre o universo digital"}
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  className="relative z-1 w-full h-full object-contain transition-transform duration-700 group-hover:scale-102"
                 />
 
                 {/* Ambient vignette gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-90" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-90 z-1" />
 
                 {/* Watermark style */}
-                <div className="absolute top-4 left-4 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/20 flex items-center gap-1.5 text-white text-xs font-bold">
+                <div className="absolute top-4 left-4 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/25 flex items-center gap-1.5 text-white text-xs font-bold z-10">
                   <Coffee className="w-4.5 h-4.5" />
                   <span>Espaço SampaCast</span>
                 </div>
@@ -352,7 +375,7 @@ export default function App() {
                 className="absolute -bottom-6 -left-4 md:-left-8 bg-white p-5 rounded-2xl shadow-xl z-20 flex items-center gap-4 border border-outline-variant/10 max-w-[280px]"
               >
                 <button
-                  onClick={() => handlePlayEpisode(episodes[0] || PODCAST_EPISODES[0])}
+                  onClick={() => latestEpisode && handlePlayEpisode(latestEpisode)}
                   className="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center text-white cursor-pointer hover:scale-110 active:scale-95 transition-all shadow-md shadow-primary-container/20 flex-shrink-0"
                   title="Ouvir episódio mais recente"
                 >
@@ -375,6 +398,115 @@ export default function App() {
             </div>
 
           </div>
+
+          {/* Featured Latest Episode Section */}
+          {latestEpisode && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+              className="mt-16 bg-[#ffffff] rounded-3xl border border-[#a13b53]/10 p-6 md:p-8 shadow-md relative overflow-hidden flex flex-col md:flex-row gap-6 md:gap-8 items-center"
+            >
+              <div className="absolute -right-20 -bottom-20 w-60 h-60 bg-gradient-to-tr from-primary/5 to-transparent rounded-full blur-2xl pointer-events-none" />
+              
+              {/* Highlight ribbon */}
+              <div className="absolute top-4 right-4 bg-gradient-to-r from-amber-500/10 to-[#a13b53]/15 px-3 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-widest text-[#a13b53] select-none flex items-center gap-1.5 z-10">
+                <Sparkles className="w-3 h-3 text-amber-500" />
+                <span>Último Episódio Cadastrado</span>
+              </div>
+
+              {/* Cover Card */}
+              <div className="relative w-full md:w-56 aspect-[4/3] md:aspect-square rounded-2xl overflow-hidden bg-neutral-950 flex items-center justify-center shrink-0 shadow-lg group">
+                <img
+                  src={latestEpisode.coverImage}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                  className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-30 select-none pointer-events-none"
+                />
+                <img
+                  src={latestEpisode.coverImage}
+                  alt={latestEpisode.title}
+                  referrerPolicy="no-referrer"
+                  className="relative z-1 w-full h-full object-contain"
+                />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+                  <button
+                    onClick={() => handlePlayEpisode(latestEpisode)}
+                    className="w-12 h-12 rounded-full bg-[#a13b53] text-white flex items-center justify-center transform scale-90 group-hover:scale-100 transition-all cursor-pointer shadow-lg"
+                  >
+                    <Headphones className="w-6 h-6 text-white" />
+                  </button>
+                </div>
+                <span className="absolute bottom-2.5 right-2.5 bg-black/70 px-2 py-0.5 rounded text-white text-[9px] font-mono z-10">
+                  {latestEpisode.duration}
+                </span>
+              </div>
+
+              {/* Episode Info */}
+              <div className="space-y-4 flex-1 min-w-0 pr-0 md:pr-12 text-center md:text-left">
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-widest">
+                    Publicado em {latestEpisode.publishDate}
+                  </p>
+                  <h3 className="text-xl md:text-2xl font-black text-on-surface leading-tight font-sans tracking-tight">
+                    {latestEpisode.title}
+                  </h3>
+                  <p className="text-xs md:text-sm text-ink-subtle leading-relaxed line-clamp-3">
+                    {latestEpisode.description}
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4 pt-1">
+                  {/* Guests or Eulogy */}
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gradient-to-br from-[#FADADD]/60 to-[#FADADD]/30 rounded-xl text-primary flex-shrink-0">
+                      <Mic className="w-4 h-4" />
+                    </div>
+                    <div className="text-left min-w-0">
+                      <span className="block text-[9px] text-ink-subtle uppercase tracking-wider font-bold">Convidado</span>
+                      <span className="block text-xs font-black text-on-surface truncate max-w-[200px]" title={latestEpisode.guestName || "Eunice Vargas"}>
+                        {latestEpisode.guestName || "Eunice Vargas"}
+                      </span>
+                      {latestEpisode.guestRole && (
+                        <span className="block text-[10px] text-ink-subtle truncate max-w-[200px]" title={latestEpisode.guestRole}>
+                          {latestEpisode.guestRole}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {latestEpisode.guestName2 && (
+                    <div className="hidden sm:flex items-center gap-3 border-l border-neutral-100 pl-4">
+                      <div className="p-2 bg-gradient-to-br from-[#FADADD]/60 to-[#FADADD]/30 rounded-xl text-primary flex-shrink-0">
+                        <Mic className="w-4 h-4" />
+                      </div>
+                      <div className="text-left min-w-0">
+                        <span className="block text-[9px] text-ink-subtle uppercase tracking-wider font-bold">Convidado 2</span>
+                        <span className="block text-xs font-black text-on-surface truncate max-w-[200px]" title={latestEpisode.guestName2}>
+                          {latestEpisode.guestName2}
+                        </span>
+                        {latestEpisode.guestRole2 && (
+                          <span className="block text-[10px] text-ink-subtle truncate max-w-[200px]">
+                            {latestEpisode.guestRole2}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => handlePlayEpisode(latestEpisode)}
+                    className="sm:ml-auto w-full sm:w-auto bg-gradient-to-r from-primary to-[#a13b53] hover:from-[#a13b53] hover:to-primary text-white font-bold text-xs px-6 py-3 rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 hover:scale-[1.02]"
+                  >
+                    <Headphones className="w-4 h-4" />
+                    <span>Ouvir Episódio Completo</span>
+                  </button>
+                </div>
+              </div>
+
+            </motion.div>
+          )}
+
         </div>
       </header>
 
@@ -692,14 +824,21 @@ export default function App() {
                       <div className="space-y-3.5">
                         
                         {/* Cover graphic */}
-                        <div className="relative aspect-video rounded-xl overflow-hidden bg-[#eeeeee]">
+                        <div className="relative aspect-video rounded-xl overflow-hidden bg-neutral-950 flex items-center justify-center">
+                          {/* Blurred background backup to avoid blank bars */}
+                          <img
+                            src={episode.coverImage}
+                            alt=""
+                            referrerPolicy="no-referrer"
+                            className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-30 select-none pointer-events-none"
+                          />
                           <img
                             src={episode.coverImage}
                             alt={episode.title}
                             referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover"
+                            className="relative z-1 w-full h-full object-contain"
                           />
-                          <div className="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                          <div className="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10">
                             <button
                               onClick={() => handlePlayEpisode(episode)}
                               className="w-12 h-12 rounded-full bg-primary-container text-white flex items-center justify-center transform scale-90 hover:scale-100 transition-all cursor-pointer"
@@ -707,7 +846,7 @@ export default function App() {
                               <Headphones className="w-5.5 h-5.5 text-white" />
                             </button>
                           </div>
-                          <span className="absolute bottom-2.5 right-2.5 bg-black/60 px-2.5 py-0.5 rounded-md text-white text-[10px] font-mono">
+                          <span className="absolute bottom-2.5 right-2.5 bg-black/60 px-2.5 py-0.5 rounded-md text-white text-[10px] font-mono z-10">
                             {episode.duration}
                           </span>
                         </div>
@@ -782,6 +921,48 @@ export default function App() {
               </AnimatePresence>
             </div>
           )}
+
+          {/* Espaço para Patrocínio (Anuncie Aqui) */}
+          <div className="pt-8">
+            <div className="relative bg-gradient-to-br from-[#fcf7f2] via-white to-[#fbfbfb] rounded-[32px] p-8 md:p-12 border border-[#a13b53]/10 overflow-hidden shadow-sm flex flex-col md:flex-row items-center justify-between gap-8">
+              
+              {/* Decorative warm ambient accent blob */}
+              <div className="absolute -right-24 -bottom-24 w-72 h-72 bg-gradient-to-tr from-[#a13b53]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -left-12 -top-12 w-48 h-48 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+              <div className="space-y-4 max-w-2xl text-center md:text-left relative z-1">
+                <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/10 to-[#a13b53]/15 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest text-[#a13b53] select-none">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-spin-slow" />
+                  <span>Espaço de Patrocínio</span>
+                </div>
+                
+                <h3 className="text-2xl md:text-3xl font-black text-on-surface font-sans tracking-tight">
+                  Anuncie Aqui!
+                </h3>
+                
+                <p className="text-xs md:text-sm text-ink-subtle leading-relaxed font-light">
+                  Conecte sua marca a uma audiência qualificada e altamente engajada de empreendedores, criadores de conteúdo e profissionais de tecnologia que acompanham o <strong className="font-bold text-primary">Café com Internet</strong> com Eunice Vargas. 
+                  Impulsione seu negócio fazendo parte dos nossos episódios e cortes de podcast.
+                </p>
+              </div>
+
+              <div className="shrink-0 relative z-1 text-center w-full md:w-auto">
+                <a
+                  href="https://api.whatsapp.com/send/?phone=5511994637159&text=Olá%20Eunice,%20gostaria%20de%20saber%20mais%20sobre%20as%20cotas%20de%20patrocínio%20e%20anunciar%20no%20Café%20com%20Internet!"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 bg-primary-container text-white px-8 py-4 rounded-2xl font-sans text-xs font-bold shadow-md hover:opacity-95 transition-all text-center w-full sm:w-auto hover:scale-[1.02] cursor-pointer"
+                >
+                  <span>Anuncie no Podcast</span>
+                  <ChevronRight className="w-4 h-4" />
+                </a>
+                <span className="block text-[10px] text-ink-subtle mt-2 italic font-medium">
+                  Cotas de patrocínio sob consulta via WhatsApp
+                </span>
+              </div>
+
+            </div>
+          </div>
 
         </div>
       </section>

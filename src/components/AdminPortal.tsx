@@ -1078,8 +1078,9 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
                             episodes.map((ep) => (
                               <div key={ep.id} className="p-4 bg-white border border-neutral-100 rounded-2xl flex gap-3 h-full justify-between flex-col">
                                 <div className="flex gap-3">
-                                  <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-neutral-100">
-                                    <img src={ep.coverImage} alt={ep.title} className="w-full h-full object-cover" />
+                                  <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-neutral-950 flex items-center justify-center relative">
+                                    <img src={ep.coverImage} alt="" className="absolute inset-0 w-full h-full object-cover blur-xs opacity-30 select-none pointer-events-none" />
+                                    <img src={ep.coverImage} alt={ep.title} className="relative z-1 max-w-full max-h-full object-contain" />
                                   </div>
                                   <div className="space-y-0.5 select-none min-w-0 flex-1">
                                     <p className="text-[10px] font-bold text-neutral-400">{ep.publishDate} · {ep.duration}</p>

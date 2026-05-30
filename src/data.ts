@@ -86,19 +86,19 @@ export const STUDIO_LOCATIONS = [
     name: "Teia Centro Histórico",
     address: "Rua Líbero Badaró, 425 · São Paulo, SP",
     description: "Espaço de coworking iluminado e histórico com design elegante e estrutura completa para produção e colaboração digital no coração de São Paulo.",
-    image: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800"
+    image: "https://agencia.curtatche.com.br/spcast_game.jpg"
   },
   {
     name: "Teia Vergueiro",
     address: "Av. Vergueiro, 1000 · São Paulo, SP",
     description: "Hub de inovação moderno caracterizado pela estética minimalista e ambiente focado em novos criadores de conteúdo e podcasters profissionais.",
-    image: "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&q=80&w=800"
+    image: "https://agencia.curtatche.com.br/spcast_vergueiro.jpg"
   },
   {
     name: "Hub Green Sampa",
     address: "Rua Sumidouro, 580 · Pinheiros, SP",
     description: "Espaço focado em sustentabilidade e tecnologia no vibrante bairro de Pinheiros, equipado com estúdios com isolamento acústico de última geração.",
-    image: "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&q=80&w=800"
+    image: "https://agencia.curtatche.com.br/spcast_paulista2.jpg"
   }
 ];
 

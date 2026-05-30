@@ -71,6 +71,8 @@ create table if not exists public.reservations (
 
 -- Ensure status column exists on reservations
 alter table public.reservations add column if not exists status text not null default 'pending';
+alter table public.reservations add column if not exists "imageConsent" boolean default false;
+alter table public.reservations add column if not exists "checkInTimestamp" text;
 
 -- FEEDBACKS / DÚVIDAS E FALE CONOSCO
 create table if not exists public.feedback (

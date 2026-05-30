@@ -38,6 +38,7 @@ import PodcastPlayer from "./components/PodcastPlayer";
 import ReservationModal from "./components/ReservationModal";
 import MyReservations from "./components/MyReservations";
 import AdminPortal from "./components/AdminPortal";
+import GuestCheckIn from "./components/GuestCheckIn";
 
 export default function App() {
   // Application Interactive States
@@ -49,6 +50,7 @@ export default function App() {
   const [selectedSession, setSelectedSession] = useState<RecordingSession | null>(null);
   const [showMyReservationsWindow, setShowMyReservationsWindow] = useState(false);
   const [showAdminPortal, setShowAdminPortal] = useState(false);
+  const [showCheckInWindow, setShowCheckInWindow] = useState(false);
   
   // Filtering & Contact States
   const [locationFilter, setLocationFilter] = useState("Todos");
@@ -250,6 +252,7 @@ export default function App() {
         reservationCount={reservations.length}
         onOpenMyReservations={() => setShowMyReservationsWindow(true)}
         onOpenAdmin={() => setShowAdminPortal(true)}
+        onOpenCheckIn={() => setShowCheckInWindow(true)}
       />
 
       {/* Hero Section */}
@@ -1089,6 +1092,14 @@ export default function App() {
         <AdminPortal
           onClose={() => setShowAdminPortal(false)}
           onDataChanged={loadDynamicData}
+        />
+      )}
+
+      {/* Guest Check-In & Image Consent Modal Component */}
+      {showCheckInWindow && (
+        <GuestCheckIn
+          onClose={() => setShowCheckInWindow(false)}
+          onCheckInCompleted={loadDynamicData}
         />
       )}
 

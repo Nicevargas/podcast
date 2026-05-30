@@ -83,6 +83,7 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
   const [adminSyncResult, setAdminSyncResult] = useState<Record<string, { success: boolean; msg: string }>>({});
   const [adminCustomClientId, setAdminCustomClientId] = useState("");
   const [showAdminClientId, setShowAdminClientId] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleAdminGoogleSync = async (res: Reservation) => {
     setAdminSyncingId(res.id);
@@ -1165,7 +1166,7 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
                                 : "text-neutral-500 hover:text-neutral-800"
                             }`}
                           >
-                            Confirmados ({reservations.filter(r => r.status === "confirmed").length})
+                            Confirmados ({reservations.filter(r => r.status === "confirmed" || r.status === "checked_in").length})
                           </button>
                         </div>
                       </div>
@@ -1173,7 +1174,9 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
                       <div className="space-y-4">
                         {(() => {
                           const filteredRes = reservations.filter(r => 
-                            reservasSubTab === "confirmed" ? r.status === "confirmed" : r.status !== "confirmed"
+                            reservasSubTab === "confirmed" 
+                              ? (r.status === "confirmed" || r.status === "checked_in")
+                              : (r.status !== "confirmed" && r.status !== "checked_in")
                           );
 
                           if (filteredRes.length === 0) {
@@ -1198,12 +1201,14 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
 
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-1">
-                                  <div className="flex items-center gap-1.5 mb-1.5">
+                                  <div className="flex flex-col gap-1.5 items-start mb-2">
                                     <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Gravação Escolhida</span>
-                                    {res.status === "confirmed" ? (
-                                      <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[8px] font-extrabold rounded uppercase leading-none border border-emerald-100">CONFIRMADA</span>
+                                    {res.status === "checked_in" ? (
+                                      <span className="px-2 py-0.5 bg-sky-50 text-sky-700 text-[8px] font-black rounded uppercase leading-none border border-sky-200">✔️ PRESENTE / CHECK-IN</span>
+                                    ) : res.status === "confirmed" ? (
+                                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[8px] font-black rounded uppercase leading-none border border-emerald-200">CONFIRMADA</span>
                                     ) : (
-                                      <span className="px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[8px] font-extrabold rounded uppercase leading-none border border-amber-100">AGUARDANDO APROVAÇÃO</span>
+                                      <span className="px-2 py-0.5 bg-amber-50 text-amber-700 text-[8px] font-black rounded uppercase leading-none border border-amber-200">AGUARDANDO APROVAÇÃO</span>
                                     )}
                                   </div>
                                   <p className="text-xs font-black text-primary">{res.sessionDate}</p>
@@ -1246,12 +1251,61 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
 
                                   {/* Admin Google sync widget */}
                                   <div className="pt-3 border-t border-neutral-100/50 mt-3 space-y-2">
-                                    {res.status === "confirmed" ? (
-                                      <div className="flex flex-col gap-1.5">
-                                        <div className="p-2 bg-emerald-50 border border-emerald-100 text-emerald-800 text-[10px] font-bold rounded-lg flex items-center gap-1.5">
-                                          <Check className="w-3.5 h-3.5 text-emerald-500" />
-                                          <span>{adminSyncResult[res.id]?.msg || "Agendamento confirmado com sucesso!"}</span>
+                                    {res.status === "checked_in" ? (
+                                      <div className="flex flex-col gap-2">
+                                        <div className="p-2.5 bg-sky-50 border border-sky-100 text-sky-800 text-[10px] font-bold rounded-xl flex flex-col gap-1">
+                                          <div className="flex items-center gap-1.5 text-sky-700">
+                                            <Check className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                                            <span>CHECK-IN DIGITAL REALIZADO</span>
+                                          </div>
+                                          <p className="font-normal font-sans text-[9px] text-[#55697a] leading-relaxed">
+                                            O convidado deu o aceite no termo de direito de imagem.
+                                          </p>
+                                          {res.checkInTimestamp && (
+                                            <div className="text-[8px] mt-1 bg-sky-500/10 px-1.5 py-0.5 rounded text-sky-700 font-mono w-max">
+                                              {new Date(res.checkInTimestamp).toLocaleString()}
+                                            </div>
+                                          )}
                                         </div>
+                                        {/* Re-sync option */}
+                                        <button
+                                          type="button"
+                                          onClick={() => handleAdminGoogleSync(res)}
+                                          className="text-right text-[9px] text-primary hover:underline cursor-pointer font-bold select-none block"
+                                        >
+                                          🔄 Reenviar convite ao Google Agenda
+                                        </button>
+                                      </div>
+                                    ) : res.status === "confirmed" ? (
+                                      <div className="flex flex-col gap-2">
+                                        <div className="p-2.5 bg-emerald-50 border border-emerald-100 text-emerald-800 text-[10px] font-bold rounded-xl flex flex-col gap-1">
+                                          <div className="flex items-center gap-1.5 text-emerald-700">
+                                            <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                            <span>Agendamento Confirmado</span>
+                                          </div>
+                                          <p className="font-normal font-sans text-[9px] text-neutral-500 leading-relaxed">
+                                            Aguardando o aceite correspondente do Termo de Imagem.
+                                          </p>
+                                        </div>
+
+                                        {/* Copiar WhatsApp Check-In */}
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const txt = `Olá! Aguardamos você para nossa gravação no Café com Internet! ☕️ Por favor, assine a autorização de uso de imagem e realize seu Check-In digital antes da gravação através do link de convidado, utilizando o código exclusivo: "${res.id}". Nos vemos lá!`;
+                                            navigator.clipboard.writeText(txt);
+                                            setCopiedId(res.id);
+                                            setTimeout(() => setCopiedId(null), 3000);
+                                          }}
+                                          className="text-left text-2xs text-[#a13b53] hover:underline cursor-pointer font-bold select-none py-1 flex items-center gap-1"
+                                        >
+                                          {copiedId === res.id ? (
+                                            <span className="text-emerald-600">✓ Instruções copiadas!</span>
+                                          ) : (
+                                            <span>📲 Copiar instruções de Check-In p/ WhatsApp</span>
+                                          )}
+                                        </button>
+
                                         {/* Re-sync option */}
                                         <button
                                           type="button"

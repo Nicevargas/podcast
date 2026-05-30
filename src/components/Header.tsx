@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { Coffee, Menu, X, Sparkles, CalendarCheck2, HeartHandshake, Lock } from "lucide-react";
+import { Coffee, Menu, X, Sparkles, CalendarCheck2, HeartHandshake, Lock, UserCheck } from "lucide-react";
 
 interface HeaderProps {
   onScrollToSection: (sectionId: string) => void;
   reservationCount: number;
   onOpenMyReservations: () => void;
   onOpenAdmin: () => void;
+  onOpenCheckIn: () => void;
 }
 
 export default function Header({
@@ -13,6 +14,7 @@ export default function Header({
   reservationCount,
   onOpenMyReservations,
   onOpenAdmin,
+  onOpenCheckIn,
 }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -84,6 +86,16 @@ export default function Header({
             )}
           </button>
 
+          {/* Guest Digital Check-In / Image release button */}
+          <button
+            onClick={onOpenCheckIn}
+            className="font-sans text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 border border-emerald-200 rounded-full transition-all flex items-center gap-1.5 cursor-pointer"
+            title="Saber mais sobre Check-In, direitos de imagem e termo"
+          >
+            <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Check-In Convidado</span>
+          </button>
+
           {/* Quick confirmation CTA */}
           <a
             href="https://api.whatsapp.com/send/?phone=5511994637159"
@@ -146,6 +158,17 @@ export default function Header({
             >
               <Lock className="w-4 h-4 text-neutral-500" />
               <span>Painel Administrador</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onOpenCheckIn();
+              }}
+              className="w-full text-center bg-emerald-50 text-emerald-700 text-xs font-bold py-3 px-4 border border-emerald-200 rounded-full flex items-center justify-center gap-1.5 cursor-pointer font-sans"
+            >
+              <UserCheck className="w-4 h-4 text-emerald-600" />
+              <span>Check-In Convidado (Termo de Imagem)</span>
             </button>
 
             <button

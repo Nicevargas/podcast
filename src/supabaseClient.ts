@@ -335,7 +335,12 @@ export const db = {
             .order("timestamp", { ascending: false });
           if (!error && data) {
             // Apply default status client-side if missing
-            return data.map(r => ({ ...r, status: r.status || "pending" }));
+            return data.map(r => ({
+              ...r,
+              status: r.status || "pending",
+              imageConsent: r.imageConsent ?? r.image_consent ?? false,
+              checkInTimestamp: r.checkInTimestamp ?? r.check_in_timestamp ?? undefined
+            }));
           }
           console.warn("Supabase reservations fetch returned error, falling back to local:", error);
         } catch (error) {
@@ -349,7 +354,9 @@ export const db = {
     create: async (reservation: Reservation): Promise<Reservation> => {
       const reservationWithStatus = {
         ...reservation,
-        status: reservation.status || "pending"
+        status: reservation.status || "pending",
+        imageConsent: reservation.imageConsent || false,
+        checkInTimestamp: reservation.checkInTimestamp || null
       };
 
       if (isSupabaseConfigured && realSupabase) {

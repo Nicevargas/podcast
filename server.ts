@@ -2,6 +2,118 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
+import nodemailer from "nodemailer";
+
+async function sendConfirmationEmail(reservation: any) {
+  const smtpHost = process.env.SMTP_HOST || "us163-pl.valueserver.net";
+  const smtpPort = parseInt(process.env.SMTP_PORT || "465", 10);
+  const smtpUser = process.env.SMTP_USER || "contato@curtatche.com.br";
+  const smtpPass = process.env.SMTP_PASS || "";
+  const smtpFrom = process.env.SMTP_FROM || `Café com Internet <${smtpUser}>`;
+
+  // Build guests element
+  const guestListHTML = reservation.guests && reservation.guests.length > 0
+    ? `<ul style="color: #4b5563; font-size: 14px; margin: 8px 0; padding-left: 20px;">${reservation.guests.map((g: any) => `<li><strong>${g.name}</strong> (${g.email})</li>`).join("")}</ul>`
+    : "<p style='color: #6b7280; font-size: 14px; margin: 8px 0; font-style: italic;'>Nenhum convidado adicional.</p>";
+
+  const mailOptions = {
+    from: smtpFrom,
+    to: reservation.email,
+    cc: "curtatche@gmail.com",
+    subject: `Reserva Confirmada! Gravação Café com Internet: ${reservation.name}`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.04);">
+        <div style="background-color: #7c2d12; color: #ffffff; padding: 35px 25px; text-align: center; background-image: radial-gradient(circle at 10% 20%, rgb(124, 45, 18) 0%, rgb(67, 20, 7) 90%);">
+          <span style="background-color: rgba(255, 255, 255, 0.15); color: #ffffff; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block; margin-bottom: 12px;">Agendamento Aprovado</span>
+          <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.2;">Reserva Confirmada! ☕🎙️</h1>
+          <p style="margin: 8px 0 0 0; font-size: 15px; opacity: 0.9;">Seu microfone está te esperando no Café com Internet.</p>
+        </div>
+        
+        <div style="padding: 35px 30px; background-color: #ffffff; color: #1f2937; line-height: 1.6;">
+          <p style="font-size: 16px; margin-top: 0; color: #111827;">Olá, <strong>${reservation.name}</strong>!</p>
+          <p style="font-size: 15px; color: #4b5563;">Excelente notícia! Sua solicitação de participação na gravação do podcast <strong>Café com Internet</strong> com <strong>Eunice Vargas</strong> foi aprovada e confirmada de forma oficial.</p>
+          
+          <div style="background-color: #fff7ed; border: 1px solid #ffedd5; padding: 22px; border-radius: 16px; margin: 25px 0;">
+            <p style="margin: 0 0 10px 0; font-size: 15px; color: #7c2d12; display: flex; align-items: center;">
+              <strong style="min-width: 85px; display: inline-block; color: #431407;">📍 Espaço:</strong> ${reservation.sessionTitle}
+            </p>
+            <p style="margin: 0 0 10px 0; font-size: 15px; color: #7c2d12; display: flex; align-items: center;">
+              <strong style="min-width: 85px; display: inline-block; color: #431407;">🏠 Endereço:</strong> ${reservation.address}
+            </p>
+            <p style="margin: 0 0 10px 0; font-size: 15px; color: #7c2d12; display: flex; align-items: center;">
+              <strong style="min-width: 85px; display: inline-block; color: #431407;">📅 Data:</strong> ${reservation.sessionDate}
+            </p>
+            <p style="margin: 0; font-size: 15px; color: #7c2d12; display: flex; align-items: center;">
+              <strong style="min-width: 85px; display: inline-block; color: #431407;">⏰ Horário:</strong> ${reservation.sessionTime}
+            </p>
+          </div>
+          
+          <div style="background-color: #f9fafb; border: 1px solid #f3f4f6; padding: 22px; border-radius: 16px; margin: 25px 0;">
+            <h3 style="margin-top: 0; color: #111827; font-size: 15px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 12px;">Pauta Sincronizada</h3>
+            <p style="margin: 8px 0; font-size: 14px; color: #4b5563;"><strong style="color: #111827;">De que vamos falar:</strong> "${reservation.topic}"</p>
+            <p style="margin: 8px 0; font-size: 14px; color: #4b5563;"><strong style="color: #111827;">Contato:</strong> ${reservation.phone}</p>
+            ${reservation.instagram ? `<p style="margin: 8px 0; font-size: 14px; color: #4b5563;"><strong style="color: #111827;">Instagram:</strong> @${reservation.instagram.replace("@", "")}</p>` : ""}
+          </div>
+
+          <div style="background-color: #f9fafb; border: 1px solid #f3f4f6; padding: 22px; border-radius: 16px; margin: 25px 0;">
+            <h3 style="margin-top: 0; color: #111827; font-size: 15px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 12px;">👥 Convidados Adicionais</h3>
+            ${guestListHTML}
+          </div>
+          
+          <div style="margin-top: 30px; border-top: 1px solid #f3f4f6; padding-top: 25px;">
+            <h4 style="margin-top: 0; color: #111827; font-size: 15px; margin-bottom: 10px;">☕ Checklist para o dia da Gravação:</h4>
+            <ul style="padding-left: 20px; margin: 0; color: #4b5563; font-size: 14px; line-height: 1.7;">
+              <li style="margin-bottom: 6px;">Chegue com <strong>15 minutos de antecedência</strong> para podermos nos conhecer, tomar um café quentinho e ajustar o áudio.</li>
+              <li style="margin-bottom: 6px;">O estúdio é totalmente equipado em parceria de fomento com o SampaCast / Ade Sampa.</li>
+              <li style="margin-bottom: 6px;">Durante as gravações, faremos imagens de bastidores e trechos de voz/acervo. A sua confirmação de presença autoriza carinhosamente o uso de imagem.</li>
+              <li>Caso ocorra algum imprevisto incontornável que impossibilite sua presença, nos notifique com antecedência!</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div style="background-color: #f9fafb; color: #9ca3af; font-size: 12px; padding: 25px; text-align: center; border-top: 1px solid #f3f4f6;">
+          <p style="margin: 0 0 6px 0;">Este é um e-mail automático gerado pelo ecossistema Café com Internet.</p>
+          <p style="margin: 0;">© 2026 Café com Internet. Todos os direitos reservados. · Dúvidas? Fale conosco em <a href="mailto:curtatche@gmail.com" style="color: #7c2d12; text-decoration: none; font-weight: 600;">curtatche@gmail.com</a></p>
+        </div>
+      </div>
+    `
+  };
+
+  if (!smtpPass || smtpPass.trim() === "") {
+    console.log("\n======================================================================");
+    console.log("            ☕ SMTP ENVIO DE E-MAIL SIMULADO (NOT CONFIGURED) ☕");
+    console.log("Por favor, forneça a credencial 'SMTP_PASS' nos Secrets da plataforma");
+    console.log("para que este e-mail formal seja efetivamente enviado ao participante.");
+    console.log("");
+    console.log(`De: ${smtpFrom}`);
+    console.log(`Para: ${mailOptions.to}`);
+    console.log(`CC: ${mailOptions.cc}`);
+    console.log(`Assunto: ${mailOptions.subject}`);
+    console.log("----------------------------------------------------------------------");
+    console.log(`[CONTEÚDO DO E-MAIL SIMULADO]:\nOlá ${reservation.name},\nSua gravação no ${reservation.sessionTitle} para o dia ${reservation.sessionDate} (${reservation.sessionTime}) da pauta "${reservation.topic}" foi confirmada formalmente!`);
+    console.log("======================================================================\n");
+    return { success: true, simulated: true };
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass
+    }
+  });
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[Nodemailer] Email enviado com sucesso para ${reservation.email}: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    console.error("[Nodemailer Error] Falha crítica ao disparar e-mail smtp real:", err);
+    throw err;
+  }
+}
 
 async function startServer() {
   const app = express();
@@ -304,6 +416,29 @@ async function startServer() {
     
     writeDB(dbData);
     res.json({ success: true });
+  });
+
+  // EMAIL CONFIRMATION DISPATCH
+  app.post("/api/send-confirmation", async (req, res) => {
+    const { reservationId, reservation } = req.body;
+    let finalRes = reservation;
+
+    if (!finalRes && reservationId) {
+      const dbData = readDB();
+      finalRes = dbData.reservations.find(r => r.id === reservationId);
+    }
+
+    if (!finalRes) {
+      return res.status(400).json({ error: "Reserva não especificada para envio de confirmação por e-mail." });
+    }
+
+    try {
+      const emailResult = await sendConfirmationEmail(finalRes);
+      return res.json({ success: true, ...emailResult });
+    } catch (err: any) {
+      console.error("Erro ao enviar confirmação de e-mail:", err);
+      return res.status(500).json({ error: err.message || "Falha no envio do e-mail de confirmação." });
+    }
   });
 
   // FEEDBACK

@@ -136,6 +136,16 @@ export const db = {
   // --- SESSIONS / AGENDA ---
   sessions: {
     list: async (): Promise<RecordingSession[]> => {
+      // Fetch from our master central shared API first to guarantee sync across all browsers
+      try {
+        const res = await fetch("/api/sessions");
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.error("Central API sessions fetch failed, resorting to Supabase:", err);
+      }
+
       if (isSupabaseConfigured && realSupabase) {
         try {
           const { data, error } = await realSupabase
@@ -146,21 +156,10 @@ export const db = {
             .order("day", { ascending: true });
           if (!error && data) return data;
         } catch (error) {
-          console.warn("Supabase sessions fetch exception, failing back:", error);
+          console.warn("Supabase sessions fetch exception:", error);
         }
       }
 
-      // Fetch from our shared API
-      try {
-        const res = await fetch("/api/sessions");
-        if (res.ok) {
-          return await res.json();
-        }
-      } catch (err) {
-        console.error("Central API sessions fetch failed", err);
-      }
-
-      // Extreme browser fallback
       return INITIAL_SESSIONS;
     },
 
@@ -168,81 +167,103 @@ export const db = {
       const newId = `session-${Date.now()}`;
       const newSession: RecordingSession = { id: newId, ...session };
 
-      if (isSupabaseConfigured && realSupabase) {
-        try {
-          const { data, error } = await realSupabase
-            .from("sessions")
-            .insert([newSession])
-            .select();
-          if (!error && data) return data[0];
-        } catch (error) {
-          console.warn("Supabase session insert exception, falling back:", error);
+      // 1. Write to centrally shared Express server (Master)
+      let savedSession = newSession;
+      try {
+        const res = await fetch("/api/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newSession)
+        });
+        if (res.ok) {
+          savedSession = await res.json();
         }
+      } catch (err) {
+        console.error("Central API session create failed:", err);
       }
 
-      // Write to centrally shared Express server
-      const res = await fetch("/api/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newSession)
-      });
-      if (res.ok) {
-        return await res.json();
+      // 2. Parallel backup replication to Supabase in background
+      if (isSupabaseConfigured && realSupabase) {
+        realSupabase
+          .from("sessions")
+          .insert([savedSession])
+          .then(({ error }: any) => {
+            if (error) console.warn("Supabase background session insertion error:", error);
+          })
+          .catch((e: any) => console.warn("Supabase session insert exception:", e));
       }
-      return newSession;
+
+      return savedSession;
     },
 
     update: async (id: string, updates: Partial<RecordingSession>): Promise<RecordingSession> => {
-      if (isSupabaseConfigured && realSupabase) {
-        try {
-          const { id: _, created_at: __, ...cleanUpdates } = updates as any;
-          const { data, error } = await realSupabase
-            .from("sessions")
-            .update(cleanUpdates)
-            .eq("id", id)
-            .select();
-          if (!error && data) return data[0];
-        } catch (error) {
-          console.warn("Supabase session update exception, falling back:", error);
+      // 1. Write to centrally shared Express server (Master)
+      let updatedSession: any = null;
+      try {
+        const res = await fetch(`/api/sessions/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates)
+        });
+        if (res.ok) {
+          updatedSession = await res.json();
         }
+      } catch (err) {
+        console.error("Central API session update failed:", err);
       }
 
-      // Put to centrally shared Express server
-      const res = await fetch(`/api/sessions/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates)
-      });
-      if (res.ok) {
-        return await res.json();
+      // 2. Parallel backup replication to Supabase in background
+      if (isSupabaseConfigured && realSupabase) {
+        const { id: _, created_at: __, ...cleanUpdates } = updates as any;
+        realSupabase
+          .from("sessions")
+          .update(cleanUpdates)
+          .eq("id", id)
+          .catch((e: any) => console.warn("Supabase session update exception:", e));
       }
+
+      if (updatedSession) return updatedSession;
       throw new Error("Erro ao atualizar sessão.");
     },
 
     delete: async (id: string): Promise<boolean> => {
-      if (isSupabaseConfigured && realSupabase) {
-        try {
-          const { error } = await realSupabase
-            .from("sessions")
-            .delete()
-            .eq("id", id);
-          if (!error) return true;
-        } catch (error) {
-          console.warn("Supabase session delete exception, falling back:", error);
-        }
+      let success = false;
+      // 1. Delete from centrally shared Express server (Master)
+      try {
+        const res = await fetch(`/api/sessions/${id}`, {
+          method: "DELETE"
+        });
+        success = res.ok;
+      } catch (err) {
+        console.error("Central API session delete failed:", err);
       }
 
-      // Delete from centrally shared Express server
-      const res = await fetch(`/api/sessions/${id}`, {
-        method: "DELETE"
-      });
-      return res.ok;
+      // 2. Parallel backup deletion in Supabase in background
+      if (isSupabaseConfigured && realSupabase) {
+        realSupabase
+          .from("sessions")
+          .delete()
+          .eq("id", id)
+          .catch((e: any) => console.warn("Supabase session delete exception:", e));
+      }
+
+      return success;
     }
   },
 
   // --- PODCAST EPISODES ---
   episodes: {
     list: async (): Promise<PodcastEpisode[]> => {
+      // Fetch from our master central shared API first to guarantee sync across all browsers
+      try {
+        const res = await fetch("/api/episodes");
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.error("Central API episodes fetch failed, resorting to Supabase:", err);
+      }
+
       if (isSupabaseConfigured && realSupabase) {
         try {
           const { data, error } = await realSupabase
@@ -251,18 +272,8 @@ export const db = {
             .order("id", { ascending: false });
           if (!error && data) return data;
         } catch (error) {
-          console.warn("Supabase episodes fetch exception, falling back:", error);
+          console.warn("Supabase episodes fetch exception:", error);
         }
-      }
-
-      // Fetch from our shared API
-      try {
-        const res = await fetch("/api/episodes");
-        if (res.ok) {
-          return await res.json();
-        }
-      } catch (err) {
-        console.error("Central API episodes fetch failed", err);
       }
 
       return PODCAST_EPISODES;
@@ -272,81 +283,100 @@ export const db = {
       const newId = `ep-${Date.now()}`;
       const newEpisode: PodcastEpisode = { id: newId, ...episode };
 
-      if (isSupabaseConfigured && realSupabase) {
-        try {
-          const { data, error } = await realSupabase
-            .from("episodes")
-            .insert([newEpisode])
-            .select();
-          if (!error && data) return data[0];
-        } catch (error) {
-          console.warn("Supabase episode insert exception, falling back:", error);
+      let savedEpisode = newEpisode;
+      try {
+        const res = await fetch("/api/episodes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newEpisode)
+        });
+        if (res.ok) {
+          savedEpisode = await res.json();
         }
+      } catch (err) {
+        console.error("Central API episode create failed:", err);
       }
 
-      // Write to centrally shared Express server
-      const res = await fetch("/api/episodes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newEpisode)
-      });
-      if (res.ok) {
-        return await res.json();
+      if (isSupabaseConfigured && realSupabase) {
+        realSupabase
+          .from("episodes")
+          .insert([savedEpisode])
+          .then(({ error }: any) => {
+            if (error) console.warn("Supabase background episode insertion error:", error);
+          })
+          .catch((e: any) => console.warn("Supabase episode insert exception:", e));
       }
-      return newEpisode;
+
+      return savedEpisode;
     },
 
     update: async (id: string, updates: Partial<PodcastEpisode>): Promise<PodcastEpisode> => {
-      if (isSupabaseConfigured && realSupabase) {
-        try {
-          const { id: _, created_at: __, ...cleanUpdates } = updates as any;
-          const { data, error } = await realSupabase
-            .from("episodes")
-            .update(cleanUpdates)
-            .eq("id", id)
-            .select();
-          if (!error && data) return data[0];
-        } catch (error) {
-          console.warn("Supabase episode update exception, falling back:", error);
+      let updatedEpisode: any = null;
+      try {
+        const res = await fetch(`/api/episodes/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates)
+        });
+        if (res.ok) {
+          updatedEpisode = await res.json();
         }
+      } catch (err) {
+        console.error("Central API episode update failed:", err);
       }
 
-      // Put to centrally shared Express server
-      const res = await fetch(`/api/episodes/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates)
-      });
-      if (res.ok) {
-        return await res.json();
+      if (isSupabaseConfigured && realSupabase) {
+        const { id: _, created_at: __, ...cleanUpdates } = updates as any;
+        realSupabase
+          .from("episodes")
+          .update(cleanUpdates)
+          .eq("id", id)
+          .catch((e: any) => console.warn("Supabase episode update exception:", e));
       }
+
+      if (updatedEpisode) return updatedEpisode;
       throw new Error("Erro ao atualizar episódio.");
     },
 
     delete: async (id: string): Promise<boolean> => {
-      if (isSupabaseConfigured && realSupabase) {
-        try {
-          const { error } = await realSupabase
-            .from("episodes")
-            .delete()
-            .eq("id", id);
-          if (!error) return true;
-        } catch (error) {
-          console.warn("Supabase episode delete exception, falling back:", error);
-        }
+      let success = false;
+      try {
+        const res = await fetch(`/api/episodes/${id}`, {
+          method: "DELETE"
+        });
+        success = res.ok;
+      } catch (err) {
+        console.error("Central API episode delete failed:", err);
       }
 
-      // Delete from centrally shared Express server
-      const res = await fetch(`/api/episodes/${id}`, {
-        method: "DELETE"
-      });
-      return res.ok;
+      if (isSupabaseConfigured && realSupabase) {
+        realSupabase
+          .from("episodes")
+          .delete()
+          .eq("id", id)
+          .catch((e: any) => console.warn("Supabase episode delete exception:", e));
+      }
+
+      return success;
     }
   },
 
   // --- RESERVATIONS ---
   reservations: {
     list: async (): Promise<Reservation[]> => {
+      // Fetch from our master central shared API first to guarantee sync across all browsers
+      try {
+        const res = await fetch("/api/reservations");
+        if (res.ok) {
+          const srvData = await res.json();
+          return srvData.sort((a: any, b: any) => {
+            return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime();
+          });
+        }
+      } catch (err) {
+        console.error("Central API reservations fetch failed, resorting to Supabase:", err);
+      }
+
       if (isSupabaseConfigured && realSupabase) {
         try {
           const { data, error } = await realSupabase
@@ -358,26 +388,12 @@ export const db = {
               ...r,
               status: r.status || "pending",
               imageConsent: r.imageConsent ?? r.image_consent ?? false,
-              checkInTimestamp: r.checkInTimestamp ?? r.check_in_timestamp ?? undefined
+              checkInTimestamp: r.checkInTimestamp ?? r.check_id_timestamp ?? undefined
             }));
           }
         } catch (error) {
-          console.warn("Supabase reservations fetch exception, falling back:", error);
+          console.warn("Supabase reservations fetch exception:", error);
         }
-      }
-
-      // Fetch from our centrally shared Express server
-      try {
-        const res = await fetch("/api/reservations");
-        if (res.ok) {
-          const srvData = await res.json();
-          // Sort reverse chronologically
-          return srvData.sort((a: any, b: any) => {
-            return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime();
-          });
-        }
-      } catch (err) {
-        console.error("Central API reservations list failed", err);
       }
 
       return [];
@@ -391,19 +407,8 @@ export const db = {
         checkInTimestamp: reservation.checkInTimestamp || null
       };
 
-      if (isSupabaseConfigured && realSupabase) {
-        try {
-          const { data, error } = await realSupabase
-            .from("reservations")
-            .insert([reservationWithStatus])
-            .select();
-          if (!error && data) return data[0];
-        } catch (error) {
-          console.warn("Supabase reservation insert exception, falling back:", error);
-        }
-      }
-
-      // Save to centrally shared Express server
+      // 1. Write to centrally shared Express server (Master)
+      let savedRes = reservationWithStatus;
       try {
         const res = await fetch("/api/reservations", {
           method: "POST",
@@ -411,73 +416,93 @@ export const db = {
           body: JSON.stringify(reservationWithStatus)
         });
         if (res.ok) {
-          return await res.json();
+          savedRes = await res.json();
         }
       } catch (err) {
-        console.error("Central API reservation create failed", err);
+        console.error("Central API reservation create failed:", err);
       }
 
-      return reservationWithStatus;
+      // 2. Parallel backup replication to Supabase in background
+      if (isSupabaseConfigured && realSupabase) {
+        realSupabase
+          .from("reservations")
+          .insert([savedRes])
+          .then(({ error }: any) => {
+            if (error) console.warn("Supabase background reservation insertion error:", error);
+          })
+          .catch((e: any) => console.warn("Supabase reservation insert exception:", e));
+      }
+
+      return savedRes;
     },
 
     update: async (id: string, updates: Partial<Reservation>): Promise<boolean> => {
-      if (isSupabaseConfigured && realSupabase) {
-        try {
-          const { error } = await realSupabase
-            .from("reservations")
-            .update(updates)
-            .eq("id", id);
-          if (!error) return true;
-        } catch (error) {
-          console.warn("Supabase reservation update exception, falling back:", error);
-        }
-      }
-
-      // Update in centrally shared Express server
+      let success = false;
+      // 1. Write to centrally shared Express server (Master)
       try {
         const res = await fetch(`/api/reservations/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(updates)
         });
-        return res.ok;
+        success = res.ok;
       } catch (err) {
-        console.error("Central API reservation update failed", err);
+        console.error("Central API reservation update failed:", err);
       }
 
-      return false;
+      // 2. Parallel backup replication to Supabase in background
+      if (isSupabaseConfigured && realSupabase) {
+        realSupabase
+          .from("reservations")
+          .update(updates)
+          .eq("id", id)
+          .then(({ error }: any) => {
+            if (error) console.warn("Supabase background reservation update error:", error);
+          })
+          .catch((e: any) => console.warn("Supabase reservation update exception:", e));
+      }
+
+      return success;
     },
 
     delete: async (id: string): Promise<boolean> => {
-      if (isSupabaseConfigured && realSupabase) {
-        try {
-          const { error } = await realSupabase
-            .from("reservations")
-            .delete()
-            .eq("id", id);
-          if (!error) return true;
-        } catch (error) {
-          console.warn("Supabase reservation delete exception, falling back:", error);
-        }
-      }
-
-      // Delete from centrally shared Express server
+      let success = false;
+      // 1. Delete from centrally shared Express server (Master)
       try {
         const res = await fetch(`/api/reservations/${id}`, {
           method: "DELETE"
         });
-        return res.ok;
+        success = res.ok;
       } catch (err) {
-        console.error("Central API reservation delete failed", err);
+        console.error("Central API reservation delete failed:", err);
       }
 
-      return false;
+      // 2. Parallel backup deletion in Supabase in background
+      if (isSupabaseConfigured && realSupabase) {
+        realSupabase
+          .from("reservations")
+          .delete()
+          .eq("id", id)
+          .catch((e: any) => console.warn("Supabase reservation delete exception:", e));
+      }
+
+      return success;
     }
   },
 
   // --- FEEDBACKS ---
   feedback: {
     list: async (): Promise<FeedbackMessage[]> => {
+      // Fetch from our master central shared API first to guarantee sync across all browsers
+      try {
+        const res = await fetch("/api/feedback");
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.error("Central API feedback fetch failed, resorting to Supabase:", err);
+      }
+
       if (isSupabaseConfigured && realSupabase) {
         try {
           const { data, error } = await realSupabase
@@ -486,18 +511,8 @@ export const db = {
             .order("timestamp", { ascending: false });
           if (!error && data) return data;
         } catch (error) {
-          console.warn("Supabase feedback fetch exception, falling back:", error);
+          console.warn("Supabase feedback fetch exception:", error);
         }
-      }
-
-      // Fetch from our centrally shared Express server
-      try {
-        const res = await fetch("/api/feedback");
-        if (res.ok) {
-          return await res.json();
-        }
-      } catch (err) {
-        console.error("Central API feedback fetch failed", err);
       }
 
       return [];
@@ -507,19 +522,8 @@ export const db = {
       const newId = `msg-${Date.now()}`;
       const newMsg: FeedbackMessage = { id: newId, ...message };
 
-      if (isSupabaseConfigured && realSupabase) {
-        try {
-          const { data, error } = await realSupabase
-            .from("feedback")
-            .insert([newMsg])
-            .select();
-          if (!error && data) return data[0];
-        } catch (error) {
-          console.warn("Supabase feedback insert exception, falling back:", error);
-        }
-      }
-
-      // Write to centrally shared Express server
+      // 1. Write to centrally shared Express server (Master)
+      let savedMsg = newMsg;
       try {
         const res = await fetch("/api/feedback", {
           method: "POST",
@@ -527,39 +531,48 @@ export const db = {
           body: JSON.stringify(newMsg)
         });
         if (res.ok) {
-          return await res.json();
+          savedMsg = await res.json();
         }
       } catch (err) {
-        console.error("Central API feedback create failed", err);
+        console.error("Central API feedback create failed:", err);
       }
 
-      return newMsg;
+      // 2. Parallel backup replication to Supabase in background
+      if (isSupabaseConfigured && realSupabase) {
+        realSupabase
+          .from("feedback")
+          .insert([savedMsg])
+          .then(({ error }: any) => {
+            if (error) console.warn("Supabase background feedback insertion error:", error);
+          })
+          .catch((e: any) => console.warn("Supabase feedback insert exception:", e));
+      }
+
+      return savedMsg;
     },
 
     delete: async (id: string): Promise<boolean> => {
-      if (isSupabaseConfigured && realSupabase) {
-        try {
-          const { error } = await realSupabase
-            .from("feedback")
-            .delete()
-            .eq("id", id);
-          if (!error) return true;
-        } catch (error) {
-          console.warn("Supabase feedback delete exception, falling back:", error);
-        }
-      }
-
-      // Delete from centrally shared Express server
+      let success = false;
+      // 1. Delete from centrally shared Express server (Master)
       try {
         const res = await fetch(`/api/feedback/${id}`, {
           method: "DELETE"
         });
-        return res.ok;
+        success = res.ok;
       } catch (err) {
-        console.error("Central API feedback delete failed", err);
+        console.error("Central API feedback delete failed:", err);
       }
 
-      return false;
+      // 2. Parallel backup deletion in Supabase in background
+      if (isSupabaseConfigured && realSupabase) {
+        realSupabase
+          .from("feedback")
+          .delete()
+          .eq("id", id)
+          .catch((e: any) => console.warn("Supabase feedback delete exception:", e));
+      }
+
+      return success;
     }
   }
 };

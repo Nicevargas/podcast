@@ -180,9 +180,20 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
       // Update the reservation status inside database
       await db.reservations.update(res.id, { status: "confirmed" });
 
+      // Automatically trigger confirmation email
+      try {
+        await fetch("/api/send-confirmation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reservationId: res.id, reservation: { ...res, status: "confirmed" } })
+        });
+      } catch (mailErr) {
+        console.error("Falha ao disparar envio do email de confirmacao:", mailErr);
+      }
+
       setAdminSyncResult(prev => ({
         ...prev,
-        [res.id]: { success: true, msg: "Confirmado e integrado com sucesso ao Google Agenda!" }
+        [res.id]: { success: true, msg: "Confirmado, integrado com Google Agenda e e-mail de confirmação enviado!" }
       }));
       
       // Reload up-to-date lists
@@ -201,9 +212,21 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
   const handleConfirmOnly = async (res: Reservation) => {
     try {
       await db.reservations.update(res.id, { status: "confirmed" });
+
+      // Automatically trigger confirmation email
+      try {
+        await fetch("/api/send-confirmation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reservationId: res.id, reservation: { ...res, status: "confirmed" } })
+        });
+      } catch (mailErr) {
+        console.error("Falha ao disparar envio do email de confirmacao:", mailErr);
+      }
+
       setAdminSyncResult(prev => ({
         ...prev,
-        [res.id]: { success: true, msg: "Agendamento confirmado com sucesso!" }
+        [res.id]: { success: true, msg: "Agendamento confirmado e e-mail de confirmação enviado!" }
       }));
       await loadAllData();
     } catch (err: any) {
@@ -460,12 +483,6 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
               <h2 className="font-sans font-extrabold text-lg text-on-surface tracking-tight">
                 Painel do Administrador
               </h2>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <Database className={`w-3 h-3 ${db.isOnline() ? "text-emerald-500" : "text-amber-500"}`} />
-                <span className="font-mono text-[10px] uppercase font-bold text-neutral-400">
-                  {db.isOnline() ? "Supabase Cloud Conectado" : "Sandbox Local (Offline)"}
-                </span>
-              </div>
             </div>
           </div>
           <button

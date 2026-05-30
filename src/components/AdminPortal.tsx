@@ -106,7 +106,7 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
     try {
       const { authenticateGoogleCalendar, createGoogleCalendarEvent, formatToISO } = await import("../googleCalendarHelper");
       
-      const token = await authenticateGoogleCalendar(clientIdToUse);
+      const token = await authenticateGoogleCalendar(clientIdToUse, "curtatche@gmail.com");
       
       // Look up corresponding session from the loaded list to parse date correctly
       const session = sessions.find(s => s.id === res.sessionId);

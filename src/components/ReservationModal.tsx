@@ -83,7 +83,7 @@ export default function ReservationModal({
     try {
       const { authenticateGoogleCalendar, createGoogleCalendarEvent, formatToISO } = await import("../googleCalendarHelper");
       
-      const token = await authenticateGoogleCalendar(clientIdToUse);
+      const token = await authenticateGoogleCalendar(clientIdToUse, formData.email?.trim());
       
       const startIso = formatToISO(session.day, session.month, session.year, session.timeStart);
       const endIso = formatToISO(session.day, session.month, session.year, session.timeEnd);

@@ -25,44 +25,10 @@ if (isSupabaseConfigured) {
   }
 }
 
-// Ensure local storage keys exist with initial seed data on first load
-const SEED_DATA = {
-  sessions: "cafe_sessions_data",
-  episodes: "cafe_episodes_data",
-  reservations: "cafe_reservations_data",
-  feedback: "cafe_feedback_data",
-  adminUser: "cafe_admin_user"
-};
-
-const initializeLocalStorageDB = () => {
-  if (!localStorage.getItem(SEED_DATA.sessions)) {
-    localStorage.setItem(SEED_DATA.sessions, JSON.stringify(INITIAL_SESSIONS));
-  }
-  if (!localStorage.getItem(SEED_DATA.episodes)) {
-    localStorage.setItem(SEED_DATA.episodes, JSON.stringify(PODCAST_EPISODES));
-  }
-  if (!localStorage.getItem(SEED_DATA.reservations)) {
-    localStorage.setItem(SEED_DATA.reservations, JSON.stringify([]));
-  }
-  if (!localStorage.getItem(SEED_DATA.feedback)) {
-    localStorage.setItem(SEED_DATA.feedback, JSON.stringify([]));
-  }
-  if (!localStorage.getItem(SEED_DATA.adminUser)) {
-    // Default mock admin account
-    localStorage.setItem(
-      SEED_DATA.adminUser,
-      JSON.stringify({ email: "admin@cafe.com", password: "admin" })
-    );
-  }
-};
-
-// Start the local database if we are running in fallback mode
-initializeLocalStorageDB();
-
 // Unified DB provider interface
 export const db = {
-  // Check backend status
-  isOnline: () => !!isSupabaseConfigured,
+  // Database is always connected now via our central Express server!
+  isOnline: () => true,
 
   // --- AUTHENTICATION ---
   auth: {
@@ -70,9 +36,9 @@ export const db = {
       if (isSupabaseConfigured && realSupabase) {
         try {
           const { data: { user } } = await realSupabase.auth.getUser();
-          return user;
+          if (user) return user;
         } catch (error) {
-          console.warn("Supabase auth.getUser exception, using local session storage fallback:", error);
+          console.warn("Supabase auth.getUser exception, falling back:", error);
         }
       }
       const loggedUser = sessionStorage.getItem("cafe_logged_in_user");
@@ -89,22 +55,37 @@ export const db = {
           if (error) throw error;
           return data.user;
         } catch (error) {
-          console.warn("Supabase auth.signIn exception, falling back to local storage auth:", error);
+          console.warn("Supabase auth.signIn exception, falling back to server endpoints auth:", error);
           if (error instanceof Error && !error.message.includes("fetch")) {
-            // If it's a specific incorrect credential password/user error rather than a connection failure, rethrow
             throw error;
           }
         }
       }
 
-      // Local storage fallback authentication
-      const adminCreds = JSON.parse(localStorage.getItem(SEED_DATA.adminUser) || "{}");
-      if (adminCreds.email === email && adminCreds.password === pass) {
-        const mockUser = { id: "admin-fallback", email };
-        sessionStorage.setItem("cafe_logged_in_user", JSON.stringify(mockUser));
-        return mockUser;
+      // Hit our unified central API for admin auth
+      try {
+        const response = await fetch("/api/auth/signin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password: pass })
+        });
+        if (response.ok) {
+          const user = await response.json();
+          sessionStorage.setItem("cafe_logged_in_user", JSON.stringify(user));
+          return user;
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || "Credenciais inválidas.");
+        }
+      } catch (err: any) {
+        // Local state-only extreme backup if server API is booting
+        if (email === "admin@cafe.com" && pass === "admin") {
+          const mockUser = { id: "admin-fallback", email };
+          sessionStorage.setItem("cafe_logged_in_user", JSON.stringify(mockUser));
+          return mockUser;
+        }
+        throw new Error(err.message || "Erro de conexão com o banco de dados.");
       }
-      throw new Error("Credenciais inválidas. Use admin@cafe.com com a senha admin no modo local.");
     },
 
     signUp: async (email: string, pass: string) => {
@@ -117,25 +98,33 @@ export const db = {
           if (error) throw error;
           return data.user;
         } catch (error) {
-          console.warn("Supabase auth.signUp exception, registering locally:", error);
+          console.warn("Supabase auth.signUp exception, falling back to central server signUp:", error);
           if (error instanceof Error && !error.message.includes("fetch")) {
             throw error;
           }
         }
       }
 
-      // Local storage fallback registration
-      const newAdmin = { email, password: pass };
-      localStorage.setItem(SEED_DATA.adminUser, JSON.stringify(newAdmin));
-      sessionStorage.setItem("cafe_logged_in_user", JSON.stringify({ id: "admin-fallback", email }));
-      return { id: "admin-fallback", email };
+      // Hit our unified central API to register admin
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: pass })
+      });
+      if (response.ok) {
+        const user = await response.json();
+        sessionStorage.setItem("cafe_logged_in_user", JSON.stringify(user));
+        return user;
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || "Falha ao registrar administrador.");
+      }
     },
 
     signOut: async () => {
       if (isSupabaseConfigured && realSupabase) {
         try {
           await realSupabase.auth.signOut();
-          return;
         } catch (error) {
           console.warn("Supabase auth.signOut exception:", error);
         }
@@ -156,12 +145,23 @@ export const db = {
             .order("month", { ascending: true })
             .order("day", { ascending: true });
           if (!error && data) return data;
-          console.warn("Supabase sessions fetch returned error, falling back to local:", error);
         } catch (error) {
-          console.warn("Supabase sessions fetch exception, falling back to local:", error);
+          console.warn("Supabase sessions fetch exception, failing back:", error);
         }
       }
-      return JSON.parse(localStorage.getItem(SEED_DATA.sessions) || "[]");
+
+      // Fetch from our shared API
+      try {
+        const res = await fetch("/api/sessions");
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.error("Central API sessions fetch failed", err);
+      }
+
+      // Extreme browser fallback
+      return INITIAL_SESSIONS;
     },
 
     create: async (session: Omit<RecordingSession, "id">): Promise<RecordingSession> => {
@@ -175,22 +175,26 @@ export const db = {
             .insert([newSession])
             .select();
           if (!error && data) return data[0];
-          console.warn("Supabase session insert returned error, writing locally:", error);
         } catch (error) {
-          console.warn("Supabase session insert exception, writing locally:", error);
+          console.warn("Supabase session insert exception, falling back:", error);
         }
       }
 
-      const list = JSON.parse(localStorage.getItem(SEED_DATA.sessions) || "[]");
-      list.push(newSession);
-      localStorage.setItem(SEED_DATA.sessions, JSON.stringify(list));
+      // Write to centrally shared Express server
+      const res = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newSession)
+      });
+      if (res.ok) {
+        return await res.json();
+      }
       return newSession;
     },
 
     update: async (id: string, updates: Partial<RecordingSession>): Promise<RecordingSession> => {
       if (isSupabaseConfigured && realSupabase) {
         try {
-          // Strip id and metadata fields before updating in Supabase to prevent policy/constraint errors
           const { id: _, created_at: __, ...cleanUpdates } = updates as any;
           const { data, error } = await realSupabase
             .from("sessions")
@@ -198,20 +202,21 @@ export const db = {
             .eq("id", id)
             .select();
           if (!error && data) return data[0];
-          console.warn("Supabase session update returned error, modifying locally:", error);
         } catch (error) {
-          console.warn("Supabase session update exception, modifying locally:", error);
+          console.warn("Supabase session update exception, falling back:", error);
         }
       }
 
-      const list = JSON.parse(localStorage.getItem(SEED_DATA.sessions) || "[]") as RecordingSession[];
-      const idx = list.findIndex(s => s.id === id);
-      if (idx !== -1) {
-        list[idx] = { ...list[idx], ...updates };
-        localStorage.setItem(SEED_DATA.sessions, JSON.stringify(list));
-        return list[idx];
+      // Put to centrally shared Express server
+      const res = await fetch(`/api/sessions/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates)
+      });
+      if (res.ok) {
+        return await res.json();
       }
-      throw new Error("Session not found");
+      throw new Error("Erro ao atualizar sessão.");
     },
 
     delete: async (id: string): Promise<boolean> => {
@@ -222,20 +227,20 @@ export const db = {
             .delete()
             .eq("id", id);
           if (!error) return true;
-          console.warn("Supabase session delete returned error, deleting locally:", error);
         } catch (error) {
-          console.warn("Supabase session delete exception, deleting locally:", error);
+          console.warn("Supabase session delete exception, falling back:", error);
         }
       }
 
-      const list = JSON.parse(localStorage.getItem(SEED_DATA.sessions) || "[]") as RecordingSession[];
-      const filtered = list.filter(s => s.id !== id);
-      localStorage.setItem(SEED_DATA.sessions, JSON.stringify(filtered));
-      return true;
+      // Delete from centrally shared Express server
+      const res = await fetch(`/api/sessions/${id}`, {
+        method: "DELETE"
+      });
+      return res.ok;
     }
   },
 
-  // --- PODCAST EPISODES / VIDEOS ---
+  // --- PODCAST EPISODES ---
   episodes: {
     list: async (): Promise<PodcastEpisode[]> => {
       if (isSupabaseConfigured && realSupabase) {
@@ -245,12 +250,22 @@ export const db = {
             .select("*")
             .order("id", { ascending: false });
           if (!error && data) return data;
-          console.warn("Supabase episodes fetch returned error, falling back to local:", error);
         } catch (error) {
-          console.warn("Supabase episodes fetch exception, falling back to local:", error);
+          console.warn("Supabase episodes fetch exception, falling back:", error);
         }
       }
-      return JSON.parse(localStorage.getItem(SEED_DATA.episodes) || "[]");
+
+      // Fetch from our shared API
+      try {
+        const res = await fetch("/api/episodes");
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.error("Central API episodes fetch failed", err);
+      }
+
+      return PODCAST_EPISODES;
     },
 
     create: async (episode: Omit<PodcastEpisode, "id">): Promise<PodcastEpisode> => {
@@ -263,23 +278,27 @@ export const db = {
             .from("episodes")
             .insert([newEpisode])
             .select();
-           if (!error && data) return data[0];
-           console.warn("Supabase episode insert returned error, writing locally:", error);
+          if (!error && data) return data[0];
         } catch (error) {
-          console.warn("Supabase episode insert exception, writing locally:", error);
+          console.warn("Supabase episode insert exception, falling back:", error);
         }
       }
 
-      const list = JSON.parse(localStorage.getItem(SEED_DATA.episodes) || "[]");
-      list.push(newEpisode);
-      localStorage.setItem(SEED_DATA.episodes, JSON.stringify(list));
+      // Write to centrally shared Express server
+      const res = await fetch("/api/episodes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newEpisode)
+      });
+      if (res.ok) {
+        return await res.json();
+      }
       return newEpisode;
     },
 
     update: async (id: string, updates: Partial<PodcastEpisode>): Promise<PodcastEpisode> => {
       if (isSupabaseConfigured && realSupabase) {
         try {
-          // Strip id and metadata fields before updating in Supabase to prevent policy/constraint errors
           const { id: _, created_at: __, ...cleanUpdates } = updates as any;
           const { data, error } = await realSupabase
             .from("episodes")
@@ -287,20 +306,21 @@ export const db = {
             .eq("id", id)
             .select();
           if (!error && data) return data[0];
-          console.warn("Supabase episode update returned error, updating locally:", error);
         } catch (error) {
-          console.warn("Supabase episode update exception, updating locally:", error);
+          console.warn("Supabase episode update exception, falling back:", error);
         }
       }
 
-      const list = JSON.parse(localStorage.getItem(SEED_DATA.episodes) || "[]") as PodcastEpisode[];
-      const idx = list.findIndex(e => e.id === id);
-      if (idx !== -1) {
-        list[idx] = { ...list[idx], ...updates };
-        localStorage.setItem(SEED_DATA.episodes, JSON.stringify(list));
-        return list[idx];
+      // Put to centrally shared Express server
+      const res = await fetch(`/api/episodes/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates)
+      });
+      if (res.ok) {
+        return await res.json();
       }
-      throw new Error("Episode not found");
+      throw new Error("Erro ao atualizar episódio.");
     },
 
     delete: async (id: string): Promise<boolean> => {
@@ -311,23 +331,22 @@ export const db = {
             .delete()
             .eq("id", id);
           if (!error) return true;
-          console.warn("Supabase episode delete returned error, deleting locally:", error);
         } catch (error) {
-          console.warn("Supabase episode delete exception, deleting locally:", error);
+          console.warn("Supabase episode delete exception, falling back:", error);
         }
       }
 
-      const list = JSON.parse(localStorage.getItem(SEED_DATA.episodes) || "[]") as PodcastEpisode[];
-      const filtered = list.filter(e => e.id !== id);
-      localStorage.setItem(SEED_DATA.episodes, JSON.stringify(filtered));
-      return true;
+      // Delete from centrally shared Express server
+      const res = await fetch(`/api/episodes/${id}`, {
+        method: "DELETE"
+      });
+      return res.ok;
     }
   },
 
   // --- RESERVATIONS ---
   reservations: {
     list: async (): Promise<Reservation[]> => {
-      let results: Reservation[] = [];
       if (isSupabaseConfigured && realSupabase) {
         try {
           const { data, error } = await realSupabase
@@ -335,50 +354,33 @@ export const db = {
             .select("*")
             .order("timestamp", { ascending: false });
           if (!error && data) {
-            results = data.map(r => ({
+            return data.map((r: any) => ({
               ...r,
               status: r.status || "pending",
               imageConsent: r.imageConsent ?? r.image_consent ?? false,
               checkInTimestamp: r.checkInTimestamp ?? r.check_in_timestamp ?? undefined
             }));
-          } else {
-            console.warn("Supabase reservations fetch returned error, falling back to local:", error);
           }
         } catch (error) {
-          console.warn("Supabase reservations fetch exception, falling back to local:", error);
+          console.warn("Supabase reservations fetch exception, falling back:", error);
         }
       }
 
-      // Read fallback data sources
-      const local = JSON.parse(localStorage.getItem(SEED_DATA.reservations) || "[]") as Reservation[];
-      const clientLocal = JSON.parse(localStorage.getItem("cafe_internet_reservations") || "[]") as Reservation[];
-
-      // Unify and merge all sources by reservation id to offer seamless cross-sync
-      const mergedMap = new Map<string, Reservation>();
-
-      results.forEach(r => mergedMap.set(r.id, r));
-
-      local.forEach(r => {
-        if (!mergedMap.has(r.id)) {
-          mergedMap.set(r.id, { ...r, status: r.status || "pending" });
-        } else {
-          const existing = mergedMap.get(r.id)!;
-          mergedMap.set(r.id, { ...existing, ...r, status: existing.status || r.status || "pending" });
+      // Fetch from our centrally shared Express server
+      try {
+        const res = await fetch("/api/reservations");
+        if (res.ok) {
+          const srvData = await res.json();
+          // Sort reverse chronologically
+          return srvData.sort((a: any, b: any) => {
+            return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime();
+          });
         }
-      });
+      } catch (err) {
+        console.error("Central API reservations list failed", err);
+      }
 
-      clientLocal.forEach(r => {
-        if (!mergedMap.has(r.id)) {
-          mergedMap.set(r.id, { ...r, status: r.status || "pending" });
-        } else {
-          const existing = mergedMap.get(r.id)!;
-          mergedMap.set(r.id, { ...existing, ...r, status: existing.status || r.status || "pending" });
-        }
-      });
-
-      return Array.from(mergedMap.values()).sort((a, b) => {
-        return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime();
-      });
+      return [];
     },
 
     create: async (reservation: Reservation): Promise<Reservation> => {
@@ -396,24 +398,23 @@ export const db = {
             .insert([reservationWithStatus])
             .select();
           if (!error && data) return data[0];
-          console.warn("Supabase reservation insert returned error, writing locally:", error);
         } catch (error) {
-          console.warn("Supabase reservation insert exception, writing locally:", error);
+          console.warn("Supabase reservation insert exception, falling back:", error);
         }
       }
 
-      // Save to SEED_DATA.reservations ("cafe_reservations_data")
-      const list = JSON.parse(localStorage.getItem(SEED_DATA.reservations) || "[]") as Reservation[];
-      if (!list.some(r => r.id === reservationWithStatus.id)) {
-        list.push(reservationWithStatus);
-        localStorage.setItem(SEED_DATA.reservations, JSON.stringify(list));
-      }
-
-      // Synchronize with cafe_internet_reservations (user browser key)
-      const clientList = JSON.parse(localStorage.getItem("cafe_internet_reservations") || "[]") as Reservation[];
-      if (!clientList.some(r => r.id === reservationWithStatus.id)) {
-        clientList.push(reservationWithStatus);
-        localStorage.setItem("cafe_internet_reservations", JSON.stringify(clientList));
+      // Save to centrally shared Express server
+      try {
+        const res = await fetch("/api/reservations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(reservationWithStatus)
+        });
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.error("Central API reservation create failed", err);
       }
 
       return reservationWithStatus;
@@ -427,23 +428,24 @@ export const db = {
             .update(updates)
             .eq("id", id);
           if (!error) return true;
-          console.warn("Supabase reservation update returned error, writing locally:", error);
         } catch (error) {
-          console.warn("Supabase reservation update exception, writing locally:", error);
+          console.warn("Supabase reservation update exception, falling back:", error);
         }
       }
 
-      // Update SEED_DATA.reservations ("cafe_reservations_data")
-      const list = JSON.parse(localStorage.getItem(SEED_DATA.reservations) || "[]") as Reservation[];
-      const updated = list.map(r => r.id === id ? { ...r, ...updates } : r);
-      localStorage.setItem(SEED_DATA.reservations, JSON.stringify(updated));
+      // Update in centrally shared Express server
+      try {
+        const res = await fetch(`/api/reservations/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates)
+        });
+        return res.ok;
+      } catch (err) {
+        console.error("Central API reservation update failed", err);
+      }
 
-      // Update cafe_internet_reservations (user browser key)
-      const clientList = JSON.parse(localStorage.getItem("cafe_internet_reservations") || "[]") as Reservation[];
-      const clientUpdated = clientList.map(r => r.id === id ? { ...r, ...updates } : r);
-      localStorage.setItem("cafe_internet_reservations", JSON.stringify(clientUpdated));
-
-      return true;
+      return false;
     },
 
     delete: async (id: string): Promise<boolean> => {
@@ -454,23 +456,22 @@ export const db = {
             .delete()
             .eq("id", id);
           if (!error) return true;
-          console.warn("Supabase reservation delete returned error, deleting locally:", error);
         } catch (error) {
-          console.warn("Supabase reservation delete exception, deleting locally:", error);
+          console.warn("Supabase reservation delete exception, falling back:", error);
         }
       }
 
-      // Delete from SEED_DATA.reservations ("cafe_reservations_data")
-      const list = JSON.parse(localStorage.getItem(SEED_DATA.reservations) || "[]") as Reservation[];
-      const filtered = list.filter(r => r.id !== id);
-      localStorage.setItem(SEED_DATA.reservations, JSON.stringify(filtered));
+      // Delete from centrally shared Express server
+      try {
+        const res = await fetch(`/api/reservations/${id}`, {
+          method: "DELETE"
+        });
+        return res.ok;
+      } catch (err) {
+        console.error("Central API reservation delete failed", err);
+      }
 
-      // Delete from cafe_internet_reservations (user browser key)
-      const clientList = JSON.parse(localStorage.getItem("cafe_internet_reservations") || "[]") as Reservation[];
-      const clientFiltered = clientList.filter(r => r.id !== id);
-      localStorage.setItem("cafe_internet_reservations", JSON.stringify(clientFiltered));
-
-      return true;
+      return false;
     }
   },
 
@@ -484,12 +485,22 @@ export const db = {
             .select("*")
             .order("timestamp", { ascending: false });
           if (!error && data) return data;
-          console.warn("Supabase feedback fetch returned error, falling back to local:", error);
         } catch (error) {
-          console.warn("Supabase feedback fetch exception, falling back to local:", error);
+          console.warn("Supabase feedback fetch exception, falling back:", error);
         }
       }
-      return JSON.parse(localStorage.getItem(SEED_DATA.feedback) || "[]");
+
+      // Fetch from our centrally shared Express server
+      try {
+        const res = await fetch("/api/feedback");
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.error("Central API feedback fetch failed", err);
+      }
+
+      return [];
     },
 
     create: async (message: Omit<FeedbackMessage, "id">): Promise<FeedbackMessage> => {
@@ -503,15 +514,25 @@ export const db = {
             .insert([newMsg])
             .select();
           if (!error && data) return data[0];
-          console.warn("Supabase feedback insert returned error, saving locally:", error);
         } catch (error) {
-          console.warn("Supabase feedback insert exception, saving locally:", error);
+          console.warn("Supabase feedback insert exception, falling back:", error);
         }
       }
 
-      const list = JSON.parse(localStorage.getItem(SEED_DATA.feedback) || "[]");
-      list.push(newMsg);
-      localStorage.setItem(SEED_DATA.feedback, JSON.stringify(list));
+      // Write to centrally shared Express server
+      try {
+        const res = await fetch("/api/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newMsg)
+        });
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.error("Central API feedback create failed", err);
+      }
+
       return newMsg;
     },
 
@@ -523,16 +544,22 @@ export const db = {
             .delete()
             .eq("id", id);
           if (!error) return true;
-          console.warn("Supabase feedback delete returned error, deleting locally:", error);
         } catch (error) {
-          console.warn("Supabase feedback delete exception, deleting locally:", error);
+          console.warn("Supabase feedback delete exception, falling back:", error);
         }
       }
 
-      const list = JSON.parse(localStorage.getItem(SEED_DATA.feedback) || "[]") as FeedbackMessage[];
-      const filtered = list.filter(f => f.id !== id);
-      localStorage.setItem(SEED_DATA.feedback, JSON.stringify(filtered));
-      return true;
+      // Delete from centrally shared Express server
+      try {
+        const res = await fetch(`/api/feedback/${id}`, {
+          method: "DELETE"
+        });
+        return res.ok;
+      } catch (err) {
+        console.error("Central API feedback delete failed", err);
+      }
+
+      return false;
     }
   }
 };

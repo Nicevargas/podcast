@@ -53,7 +53,7 @@ export function initGoogleGSI(): Promise<void> {
 /**
  * Triggers Google identity service token client to get an access token.
  */
-export function authenticateGoogleCalendar(clientId: string): Promise<string> {
+export function authenticateGoogleCalendar(clientId: string, loginHint?: string): Promise<string> {
   return new Promise(async (resolve, reject) => {
     await initGoogleGSI();
     const google = (window as any).google;
@@ -73,6 +73,7 @@ export function authenticateGoogleCalendar(clientId: string): Promise<string> {
       const client = google.accounts.oauth2.initTokenClient({
         client_id: cleanClientId,
         scope: "https://www.googleapis.com/auth/calendar.events",
+        hint: loginHint || "", // Preselect specified Google Account
         callback: (response: any) => {
           if (response.error) {
             reject(new Error(response.error_description || response.error || "Autenticação falhou."));

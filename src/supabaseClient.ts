@@ -611,7 +611,16 @@ export const db = {
             .from("waiting_list")
             .select("*")
             .order("created_at", { ascending: false });
-          if (!error && data) return data;
+          if (!error && data) {
+            return data.map((row: any) => ({
+              id: row.id,
+              name: row.name,
+              contact: row.contact,
+              weekdayPreferences: row.weekdayPreferences,
+              bestHours: row.bestHours,
+              createdAt: row.created_at || row.createdAt
+            }));
+          }
           if (error) console.error("Supabase waiting list fetch error:", error);
         } catch (error) {
           console.warn("Supabase waiting list fetch exception:", error);
@@ -636,17 +645,27 @@ export const db = {
       const newEntry: WaitingListEntry = { id: newId, ...entry, createdAt: new Date().toISOString() };
 
       if (isSupabaseConfigured && realSupabase) {
-        const { error } = await realSupabase
-          .from("waiting_list")
-          .insert([newEntry]);
-        if (error) {
-          console.error("Supabase waiting list insert error:", error);
-          throw error;
+        try {
+          const payload = {
+            id: newId,
+            name: entry.name,
+            contact: entry.contact,
+            weekdayPreferences: entry.weekdayPreferences,
+            bestHours: entry.bestHours
+          };
+          const { error } = await realSupabase
+            .from("waiting_list")
+            .insert([payload]);
+          if (!error) {
+            return newEntry;
+          }
+          console.warn("Supabase waiting list insert failed, falling back to local database API:", error);
+        } catch (e) {
+          console.warn("Supabase waiting list insert exception, falling back to local database API:", e);
         }
-        return newEntry;
       }
 
-      // Fallback/Non-Supabase
+      // Fallback/Non-Supabase/Failed-Supabase
       try {
         const res = await fetch("/api/waiting-list", {
           method: "POST",
@@ -665,18 +684,21 @@ export const db = {
 
     delete: async (id: string): Promise<boolean> => {
       if (isSupabaseConfigured && realSupabase) {
-        const { error } = await realSupabase
-          .from("waiting_list")
-          .delete()
-          .eq("id", id);
-        if (error) {
-          console.error("Supabase waiting list delete error:", error);
-          return false;
+        try {
+          const { error } = await realSupabase
+            .from("waiting_list")
+            .delete()
+            .eq("id", id);
+          if (!error) {
+            return true;
+          }
+          console.warn("Supabase waiting list delete failed, trying local database API:", error);
+        } catch (e) {
+          console.warn("Supabase waiting list delete exception, trying local database API:", e);
         }
-        return true;
       }
 
-      // Fallback/Non-Supabase
+      // Fallback/Non-Supabase/Failed-Supabase
       try {
         const res = await fetch(`/api/waiting-list/${id}`, {
           method: "DELETE"

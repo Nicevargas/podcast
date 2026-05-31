@@ -36,6 +36,7 @@ import { db } from "./supabaseClient";
 import Header from "./components/Header";
 import PodcastPlayer from "./components/PodcastPlayer";
 import ReservationModal from "./components/ReservationModal";
+import WaitingListModal from "./components/WaitingListModal";
 import MyReservations from "./components/MyReservations";
 import AdminPortal from "./components/AdminPortal";
 import GuestCheckIn from "./components/GuestCheckIn";
@@ -51,6 +52,7 @@ export default function App() {
   const [showMyReservationsWindow, setShowMyReservationsWindow] = useState(false);
   const [showAdminPortal, setShowAdminPortal] = useState(false);
   const [showCheckInWindow, setShowCheckInWindow] = useState(false);
+  const [showWaitingListModal, setShowWaitingListModal] = useState(false);
   
   // Filtering & Contact States
   const [locationFilter, setLocationFilter] = useState("Todos");
@@ -732,14 +734,23 @@ export default function App() {
               </div>
             </div>
 
-            <a
-              href="https://api.whatsapp.com/send/?phone=5511994637159&text=Ol%C3%A1%20Eunice%2C%20gostaria%20de%20consultar%20outras%20datas%20de%20grava%C3%A7%C3%A3o%20para%20o%20Caf%C3%A9%20com%20Internet!"
-              target="_blank"
-              rel="noreferrer"
-              className="w-full md:w-auto bg-primary text-white text-center px-8 py-3.5 rounded-xl font-bold text-xs shadow-xs hover:opacity-95 transition-opacity inline-flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              Consultar Agenda Completa
-            </a>
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+              <button
+                onClick={() => setShowWaitingListModal(true)}
+                className="w-full sm:w-auto bg-gradient-to-r from-primary to-[#a13b53] text-white text-center px-6 py-3.5 rounded-xl font-bold text-xs shadow-sm hover:scale-[1.02] transition-transform inline-flex items-center justify-center gap-1.5 cursor-pointer font-sans"
+              >
+                <Sparkles className="w-4 h-4 text-amber-300 fill-amber-300" />
+                <span>Entrar na Lista de Espera</span>
+              </button>
+              <a
+                href="https://api.whatsapp.com/send/?phone=5511994637159&text=Ol%C3%A1%20Eunice%2C%20gostaria%20de%20consultar%20outras%20datas%20de%20grava%C3%A7%C3%A3o%20para%20o%20Caf%C3%A9%20com%20Internet!"
+                target="_blank"
+                rel="noreferrer"
+                className="w-full sm:w-auto bg-[#25D366] text-white text-center px-6 py-3.5 rounded-xl font-bold text-xs shadow-xs hover:opacity-95 transition-opacity inline-flex items-center justify-center gap-1.5 cursor-pointer font-sans"
+              >
+                Conversar no WhatsApp
+              </a>
+            </div>
           </div>
 
         </div>
@@ -1291,6 +1302,15 @@ export default function App() {
         <GuestCheckIn
           onClose={() => setShowCheckInWindow(false)}
           onCheckInCompleted={loadDynamicData}
+        />
+      )}
+
+      {showWaitingListModal && (
+        <WaitingListModal
+          onClose={() => setShowWaitingListModal(false)}
+          onSuccess={(newEntry) => {
+            console.log("Registrado com sucesso na lista de espera:", newEntry);
+          }}
         />
       )}
 

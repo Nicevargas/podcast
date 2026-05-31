@@ -54,3 +54,12 @@ export interface PodcastEpisode {
   guestName3?: string;
   guestRole3?: string;
 }
+
+export interface WaitingListEntry {
+  id: string;
+  name: string;
+  contact: string;
+  weekdayPreferences: string; // Comma-separated days (e.g. "Segunda-feira, Terça-feira")
+  bestHours: string; // Comma-separated or specific text (e.g. "09:00 - 12:00, 14:00 - 16:00")
+  createdAt?: string;
+}

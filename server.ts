@@ -129,6 +129,7 @@ async function startServer() {
     episodes: any[];
     reservations: any[];
     feedback: any[];
+    waitingList: any[];
     admin: any;
   }
 
@@ -251,10 +252,14 @@ async function startServer() {
 
   function readDB(): DBStructure {
     try {
-      if (fs.existsSync(DB_FILE)) {
-        const content = fs.readFileSync(DB_FILE, "utf-8");
-        return JSON.parse(content);
-      }
+       if (fs.existsSync(DB_FILE)) {
+         const content = fs.readFileSync(DB_FILE, "utf-8");
+         const data = JSON.parse(content);
+         if (!data.waitingList) {
+           data.waitingList = [];
+         }
+         return data;
+       }
     } catch (err) {
       console.error("Error reading database file:", err);
     }
@@ -264,6 +269,7 @@ async function startServer() {
       episodes: INITIAL_EPISODES,
       reservations: [],
       feedback: [],
+      waitingList: [],
       admin: { email: "admin@cafe.com", password: "admin" }
     };
     writeDB(defaultDB);
@@ -462,6 +468,36 @@ async function startServer() {
     const dbData = readDB();
     const { id } = req.params;
     dbData.feedback = dbData.feedback.filter((f) => f.id !== id);
+    writeDB(dbData);
+    res.json({ success: true });
+  });
+
+  // WAITING LIST
+  app.get("/api/waiting-list", (req, res) => {
+    const dbData = readDB();
+    res.json(dbData.waitingList || []);
+  });
+
+  app.post("/api/waiting-list", (req, res) => {
+    const dbData = readDB();
+    const newEntry = req.body;
+    if (!newEntry.id) {
+      newEntry.id = `wait-${Date.now()}`;
+    }
+    if (!dbData.waitingList) {
+      dbData.waitingList = [];
+    }
+    dbData.waitingList.push(newEntry);
+    writeDB(dbData);
+    res.status(201).json(newEntry);
+  });
+
+  app.delete("/api/waiting-list/:id", (req, res) => {
+    const dbData = readDB();
+    const { id } = req.params;
+    if (dbData.waitingList) {
+      dbData.waitingList = dbData.waitingList.filter((entry) => entry.id !== id);
+    }
     writeDB(dbData);
     res.json({ success: true });
   });

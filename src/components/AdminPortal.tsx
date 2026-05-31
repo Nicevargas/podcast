@@ -20,7 +20,7 @@ import {
   MapPin
 } from "lucide-react";
 import { db } from "../supabaseClient";
-import { RecordingSession, PodcastEpisode, Reservation, FeedbackMessage } from "../types";
+import { RecordingSession, PodcastEpisode, Reservation, FeedbackMessage, WaitingListEntry } from "../types";
 
 interface AdminPortalProps {
   onClose: () => void;
@@ -34,7 +34,7 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [authSuccess, setAuthSuccess] = useState("");
-  const [activeTab, setActiveTab] = useState<"agenda" | "videos" | "reservas" | "mensagens">("agenda");
+  const [activeTab, setActiveTab] = useState<"agenda" | "videos" | "reservas" | "mensagens" | "espera">("agenda");
   const [reservasSubTab, setReservasSubTab] = useState<"pending" | "confirmed">("pending");
 
   // DB Data States
@@ -42,6 +42,7 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
   const [episodes, setEpisodes] = useState<PodcastEpisode[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [feedback, setFeedback] = useState<FeedbackMessage[]>([]);
+  const [waitingList, setWaitingList] = useState<WaitingListEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Form States
@@ -262,11 +263,13 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
       const eList = await db.episodes.list();
       const rList = await db.reservations.list();
       const fList = await db.feedback.list();
+      const wList = await db.waitingList.list();
       
       setSessions(sList);
       setEpisodes(eList);
       setReservations(rList);
       setFeedback(fList);
+      setWaitingList(wList);
     } catch (err: any) {
       console.error("Failed to load admin data:", err);
     } finally {
@@ -467,6 +470,18 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
     }
   };
 
+  // Waiting List Actions
+  const handleDeleteWaitingList = async (id: string) => {
+    if (!window.confirm("Remover este convidado da lista de espera?")) return;
+    try {
+      await db.waitingList.delete(id);
+      setActionSuccess("Convidado removido da lista de espera!");
+      await loadAllData();
+    } catch (err: any) {
+      setActionError(err.message || "Erro ao excluir convidado da lista de espera");
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-[#0f0e0d]/80 backdrop-blur-md flex items-center justify-center p-4 md:p-6 lg:p-8">
       <div className="relative w-full max-w-5xl h-full max-h-[92vh] md:max-h-[88vh] bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-neutral-100" id="admin-panel-container">
@@ -647,6 +662,23 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
                   {feedback.length > 0 && (
                     <span className="absolute right-3.5 top-3 w-5 h-5 flex items-center justify-center text-[10px] font-bold bg-[#cd6a5a] text-white rounded-full">
                       {feedback.length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => { setActiveTab("espera"); setActionSuccess(""); setActionError(""); }}
+                  className={`w-full flex items-center gap-2.5 px-3.5 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer relative ${
+                    activeTab === "espera"
+                      ? "bg-primary text-white shadow-md shadow-primary/10"
+                      : "text-neutral-600 hover:bg-neutral-200/50"
+                  }`}
+                >
+                  <Clock className="w-4 h-4" />
+                  Lista de Espera
+                  {waitingList.length > 0 && (
+                    <span className="absolute right-3.5 top-3 w-5 h-5 flex items-center justify-center text-[10px] font-bold bg-amber-500 text-white rounded-full">
+                      {waitingList.length}
                     </span>
                   )}
                 </button>
@@ -1471,6 +1503,79 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
 
                               <div className="mt-3 p-3 bg-neutral-50 rounded-xl border border-neutral-100 text-xs text-neutral-700 leading-relaxed whitespace-pre-line">
                                 {msg.message}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* --- TAB 5: LISTA DE ESPERA --- */}
+                  {activeTab === "espera" && (
+                    <div className="space-y-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                          <h3 className="font-sans font-black text-xl text-on-surface tracking-tight">
+                            👥 Lista de Espera de Convidados
+                          </h3>
+                          <p className="text-neutral-500 text-xs mt-1">
+                            Aqui estão os convidados inscritos que aguardam datas flexíveis ou novos slots de gravação.
+                          </p>
+                        </div>
+                        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs px-3.5 py-1.5 rounded-xl font-bold select-none flex items-center gap-1.5 shrink-0 self-start sm:self-center">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>Total: {waitingList.length} pessoas</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        {waitingList.length === 0 ? (
+                          <div className="p-12 text-center text-neutral-400 text-xs bg-neutral-50 border border-neutral-100 rounded-3xl">
+                            Nenhum convidado inscrito na lista de espera até o momento.
+                          </div>
+                        ) : (
+                          waitingList.map((entry) => (
+                            <div key={entry.id} className="p-5 bg-white border border-neutral-100 rounded-2xl relative shadow-xs hover:border-neutral-200 transition-colors">
+                              <button
+                                onClick={() => handleDeleteWaitingList(entry.id)}
+                                className="absolute top-4 right-4 text-neutral-400 hover:text-rose-600 p-1.5 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                title="Remover da Lista"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+
+                              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start pr-8">
+                                <div className="md:col-span-4 space-y-1">
+                                  <h4 className="font-sans font-black text-base text-neutral-800">{entry.name}</h4>
+                                  <p className="text-xs font-mono text-[#a13b53] font-bold break-all bg-neutral-50 px-2.5 py-1 rounded-lg inline-block select-all">{entry.contact}</p>
+                                  {entry.createdAt && (
+                                    <p className="text-[10px] text-neutral-400 font-bold uppercase mt-1">Inscrito em: {new Date(entry.createdAt).toLocaleDateString()}</p>
+                                  )}
+                                </div>
+
+                                <div className="md:col-span-4 space-y-2">
+                                  <div>
+                                    <span className="text-[10px] font-black tracking-wider uppercase text-neutral-400 block">Dias de Preferência</span>
+                                    <span className="text-xs font-semibold text-neutral-700">{entry.weekdayPreferences || "Qualquer dia útil"}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[10px] font-black tracking-wider uppercase text-neutral-400 block">Melhores Horários (9:00 às 17:00)</span>
+                                    <span className="text-xs font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md inline-block mt-0.5">{entry.bestHours || "Livre comercial"}</span>
+                                  </div>
+                                </div>
+
+                                <div className="md:col-span-4 flex justify-end pt-3 md:pt-1">
+                                  <a
+                                    href={`https://api.whatsapp.com/send?phone=${entry.contact.replace(/\D/g, "")}&text=Olá%20${encodeURIComponent(entry.name)}!%20Aqui%20é%20Eunice%20Vargas,%20do%20Café%20com%20Internet.%20Vi%20que%20se%20inscreveu%20em%20nossa%20lista%20de%20espera!%20Vamos%20agendar%20sua%20gravação?`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-4 py-2.5 rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer font-sans"
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                    <span>Agendar via WhatsApp</span>
+                                  </a>
+                                </div>
                               </div>
                             </div>
                           ))

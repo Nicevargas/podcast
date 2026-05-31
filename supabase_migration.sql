@@ -85,6 +85,16 @@ create table if not exists public.feedback (
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- LISTA DE ESPERA / GUEST WAITING LIST
+create table if not exists public.waiting_list (
+    id text primary key,
+    name text not null,
+    contact text not null,
+    "weekdayPreferences" text not null,
+    "bestHours" text not null,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
 
 -- --------------------------------------------------
 -- 3. ENABLE ROW LEVEL SECURITY (RLS)
@@ -93,6 +103,7 @@ alter table public.sessions enable row level security;
 alter table public.episodes enable row level security;
 alter table public.reservations enable row level security;
 alter table public.feedback enable row level security;
+alter table public.waiting_list enable row level security;
 
 
 -- --------------------------------------------------
@@ -178,6 +189,30 @@ create policy "Allow authenticating delete action for feedback"
 drop policy if exists "Allow generic read on feedback if anonymous" on public.feedback;
 create policy "Allow generic read on feedback if anonymous"
     on public.feedback for select
+    using (true);
+
+
+-- Waiting List Policies
+drop policy if exists "Allow public insert to send waiting_list registrations" on public.waiting_list;
+create policy "Allow public insert to send waiting_list registrations" 
+    on public.waiting_list for insert 
+    with check (true);
+
+drop policy if exists "Allow authenticating select and delete actions for waiting_list management" on public.waiting_list;
+create policy "Allow authenticating select and delete actions for waiting_list management" 
+    on public.waiting_list for select 
+    to authenticated 
+    using (true);
+
+drop policy if exists "Allow authenticating delete action for waiting_list" on public.waiting_list;
+create policy "Allow authenticating delete action for waiting_list" 
+    on public.waiting_list for delete 
+    to authenticated 
+    using (true);
+
+drop policy if exists "Allow generic read on waiting_list for checking status" on public.waiting_list;
+create policy "Allow generic read on waiting_list for checking status"
+    on public.waiting_list for select
     using (true);
 
 

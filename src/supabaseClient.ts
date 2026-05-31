@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { RecordingSession, PodcastEpisode, Reservation, FeedbackMessage } from "./types";
+import { RecordingSession, PodcastEpisode, Reservation, FeedbackMessage, WaitingListEntry } from "./types";
 import { INITIAL_SESSIONS, PODCAST_EPISODES } from "./data";
 
 // Retrieve environment variables
@@ -597,6 +597,93 @@ export const db = {
         return res.ok;
       } catch (err) {
         console.error("Central API feedback delete failed:", err);
+        return false;
+      }
+    }
+  },
+
+  // --- WAITING LIST ---
+  waitingList: {
+    list: async (): Promise<WaitingListEntry[]> => {
+      if (isSupabaseConfigured && realSupabase) {
+        try {
+          const { data, error } = await realSupabase
+            .from("waiting_list")
+            .select("*")
+            .order("created_at", { ascending: false });
+          if (!error && data) return data;
+          if (error) console.error("Supabase waiting list fetch error:", error);
+        } catch (error) {
+          console.warn("Supabase waiting list fetch exception:", error);
+        }
+      }
+
+      // Fallback/Non-Supabase
+      try {
+        const res = await fetch("/api/waiting-list");
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.error("Central API waiting list fetch failed", err);
+      }
+
+      return [];
+    },
+
+    create: async (entry: Omit<WaitingListEntry, "id">): Promise<WaitingListEntry> => {
+      const newId = `wait-${Date.now()}`;
+      const newEntry: WaitingListEntry = { id: newId, ...entry, createdAt: new Date().toISOString() };
+
+      if (isSupabaseConfigured && realSupabase) {
+        const { error } = await realSupabase
+          .from("waiting_list")
+          .insert([newEntry]);
+        if (error) {
+          console.error("Supabase waiting list insert error:", error);
+          throw error;
+        }
+        return newEntry;
+      }
+
+      // Fallback/Non-Supabase
+      try {
+        const res = await fetch("/api/waiting-list", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newEntry)
+        });
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.error("Central API waiting list create failed:", err);
+      }
+
+      return newEntry;
+    },
+
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && realSupabase) {
+        const { error } = await realSupabase
+          .from("waiting_list")
+          .delete()
+          .eq("id", id);
+        if (error) {
+          console.error("Supabase waiting list delete error:", error);
+          return false;
+        }
+        return true;
+      }
+
+      // Fallback/Non-Supabase
+      try {
+        const res = await fetch(`/api/waiting-list/${id}`, {
+          method: "DELETE"
+        });
+        return res.ok;
+      } catch (err) {
+        console.error("Central API waiting list delete failed:", err);
         return false;
       }
     }

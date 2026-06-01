@@ -1,5 +1,4 @@
 import { RecordingSession, PodcastEpisode } from "./types";
-import sampaLapaImg from "./assets/images/sampa_cast_lapa_1780333577178.png";
 
 export const INITIAL_SESSIONS: RecordingSession[] = [
   {
@@ -131,7 +130,7 @@ export const STUDIO_LOCATIONS = [
     name: "Sampa Cast - Lapa",
     address: "R. Catão, 611 - Vila Romana, São Paulo",
     description: "Estúdio de gravação de podcast premium na Lapa totalmente equipado com isolamento acústico de alto padrão, iluminação cenográfica profissional, câmeras DSLR e microfones Shure, ideal para episódios marcantes.",
-    image: sampaLapaImg
+    image: "https://agencia.curtatche.com.br/spcast_lapa.jpg"
   }
 ];
 

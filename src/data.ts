@@ -1,4 +1,5 @@
 import { RecordingSession, PodcastEpisode } from "./types";
+import sampaLapaImg from "./assets/images/sampa_cast_lapa_1780333577178.png";
 
 export const INITIAL_SESSIONS: RecordingSession[] = [
   {
@@ -78,6 +79,32 @@ export const INITIAL_SESSIONS: RecordingSession[] = [
     address: "Av. Vergueiro, 1000 · São Paulo, SP",
     spotsLeft: 3,
     totalSpots: 3
+  },
+  {
+    id: "session-7",
+    day: "15",
+    month: "Junho",
+    year: "2026",
+    title: "Sampa Cast - Lapa",
+    timeStart: "10:00",
+    timeEnd: "12:00",
+    location: "Sampa Cast - Lapa",
+    address: "R. Catão, 611 - Vila Romana, São Paulo",
+    spotsLeft: 3,
+    totalSpots: 3
+  },
+  {
+    id: "session-8",
+    day: "18",
+    month: "Junho",
+    year: "2026",
+    title: "Sampa Cast - Lapa",
+    timeStart: "14:00",
+    timeEnd: "16:00",
+    location: "Sampa Cast - Lapa",
+    address: "R. Catão, 611 - Vila Romana, São Paulo",
+    spotsLeft: 3,
+    totalSpots: 3
   }
 ];
 
@@ -99,6 +126,12 @@ export const STUDIO_LOCATIONS = [
     address: "Rua Sumidouro, 580 · Pinheiros, SP",
     description: "Espaço focado em sustentabilidade e tecnologia no vibrante bairro de Pinheiros, equipado com estúdios com isolamento acústico de última geração.",
     image: "https://agencia.curtatche.com.br/spcast_paulista2.jpg"
+  },
+  {
+    name: "Sampa Cast - Lapa",
+    address: "R. Catão, 611 - Vila Romana, São Paulo",
+    description: "Estúdio de gravação de podcast premium na Lapa totalmente equipado com isolamento acústico de alto padrão, iluminação cenográfica profissional, câmeras DSLR e microfones Shure, ideal para episódios marcantes.",
+    image: sampaLapaImg
   }
 ];
 

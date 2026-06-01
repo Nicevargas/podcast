@@ -211,6 +211,32 @@ async function startServer() {
       address: "Av. Vergueiro, 1000 · São Paulo, SP",
       spotsLeft: 3,
       totalSpots: 3
+    },
+    {
+      id: "session-7",
+      day: "15",
+      month: "Junho",
+      year: "2026",
+      title: "Sampa Cast - Lapa",
+      timeStart: "10:00",
+      timeEnd: "12:00",
+      location: "Sampa Cast - Lapa",
+      address: "R. Catão, 611 - Vila Romana, São Paulo",
+      spotsLeft: 3,
+      totalSpots: 3
+    },
+    {
+      id: "session-8",
+      day: "18",
+      month: "Junho",
+      year: "2026",
+      title: "Sampa Cast - Lapa",
+      timeStart: "14:00",
+      timeEnd: "16:00",
+      location: "Sampa Cast - Lapa",
+      address: "R. Catão, 611 - Vila Romana, São Paulo",
+      spotsLeft: 3,
+      totalSpots: 3
     }
   ];
 
@@ -257,6 +283,12 @@ async function startServer() {
          const data = JSON.parse(content);
          if (!data.waitingList) {
            data.waitingList = [];
+         }
+         // Append missing seed sessions (like Sampa Cast - Lapa) if they don't exist
+         if (data.sessions && !data.sessions.some((s: any) => s.id === "session-7")) {
+           const missing = INITIAL_SESSIONS.filter((is: any) => !data.sessions.some((s: any) => s.id === is.id));
+           data.sessions.push(...missing);
+           fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), "utf-8");
          }
          return data;
        }

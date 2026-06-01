@@ -253,7 +253,7 @@ export default function App() {
     : sessions.filter((s) => s.location === locationFilter);
 
   // Available unique locations for filter bar
-  const locationOptions = ["Todos", "Teia Centro Histórico", "Teia Vergueiro", "Teia Pinheiros"];
+  const locationOptions = ["Todos", "Teia Centro Histórico", "Teia Vergueiro", "Teia Pinheiros", "Sampa Cast - Lapa"];
 
   // Find the latest registered podcast episode safely
   const latestEpisode = (() => {
@@ -616,7 +616,7 @@ export default function App() {
                       : "text-secondary hover:text-primary hover:bg-neutral-50"
                   }`}
                 >
-                  {option.replace("Teia ", "")}
+                  {option.replace("Teia ", "").replace("Sampa Cast - ", "")}
                 </button>
               ))}
             </div>

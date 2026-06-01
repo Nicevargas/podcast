@@ -25,40 +25,46 @@ export default function PodcastPlayer({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
+  const lastEpisodeIdRef = useRef<string | null>(null);
+
   // Sync state with HTML5 audio
   useEffect(() => {
-    if (!audioRef.current || !currentEpisode) return;
+    const audio = audioRef.current;
+    if (!audio || !currentEpisode) return;
+
+    const episodeChanged = lastEpisodeIdRef.current !== currentEpisode.id;
+
+    if (episodeChanged) {
+      lastEpisodeIdRef.current = currentEpisode.id;
+      setCurrentTime(0);
+      setIsLoading(true);
+      audio.load();
+    }
 
     if (isPlaying) {
-      const playPromise = audioRef.current.play();
+      const playPromise = audio.play();
       if (playPromise !== undefined) {
+        // Only set loading if it hasn't resolved instantly
         setIsLoading(true);
         playPromise
           .then(() => {
             setIsLoading(false);
           })
-          .catch((error) => {
-            console.error("Audio playback error:", error);
-            onPlayPauseToggle(false);
+          .catch((error: any) => {
+            if (error && error.name !== "AbortError") {
+              console.warn(`Audio play() failed under normal operation: ${error.name || "Error"} - ${error.message || ""}`);
+              // Handle other exceptions gracefully by toggling pause
+              if (error.name === "NotSupportedError" || error.name === "NotAllowedError") {
+                onPlayPauseToggle(false);
+              }
+            }
             setIsLoading(false);
           });
       }
     } else {
-      audioRef.current.pause();
+      audio.pause();
     }
-  }, [isPlaying, currentEpisode?.audioUrl]);
-
-  // Handle source changing
-  useEffect(() => {
-    if (audioRef.current && currentEpisode) {
-      audioRef.current.load();
-      if (isPlaying) {
-        audioRef.current.play().catch(() => {
-          onPlayPauseToggle(false);
-        });
-      }
-    }
-  }, [currentEpisode?.audioUrl]);
+  }, [isPlaying, currentEpisode?.id, currentEpisode?.audioUrl, onPlayPauseToggle]);
 
   const handlePlayPause = () => {
     onPlayPauseToggle(!isPlaying);
@@ -146,6 +152,15 @@ export default function PodcastPlayer({
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={() => onPlayPauseToggle(false)}
+        onWaiting={() => setIsLoading(true)}
+        onPlaying={() => setIsLoading(false)}
+        onCanPlay={() => setIsLoading(false)}
+        onError={() => {
+          const errorCode = audioRef.current?.error?.code;
+          const errorMessage = audioRef.current?.error?.message;
+          console.warn(`Audio element encountered a loading/playback issue. Code: ${errorCode || "unknown"}, Message: ${errorMessage || "unknown"}`);
+          setIsLoading(false);
+        }}
         className="hidden"
       />
 

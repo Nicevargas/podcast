@@ -1327,7 +1327,15 @@ export default function App() {
         <div className="space-y-1">
           <span className="font-sans text-md font-bold text-on-surface">Café com Internet</span>
           <p className="text-xs text-ink-subtle">
-            © 2026 Café com Internet. Digital insights & coffee vibes. Direitos reservados.
+            © 2026 Café com Internet. Digital insights & coffee vibes.{' '}
+            <a
+              href="http://curtatche.com.br/"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-[#a13b53] transition-all underline font-medium inline-flex items-center gap-0.5"
+            >
+              by curtatche.com.br
+            </a>
           </p>
         </div>
 

@@ -17,7 +17,8 @@ import {
   PlusCircle,
   Clock,
   Link,
-  MapPin
+  MapPin,
+  Search
 } from "lucide-react";
 import { db } from "../supabaseClient";
 import { RecordingSession, PodcastEpisode, Reservation, FeedbackMessage, WaitingListEntry } from "../types";
@@ -36,6 +37,7 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
   const [authSuccess, setAuthSuccess] = useState("");
   const [activeTab, setActiveTab] = useState<"agenda" | "videos" | "reservas" | "mensagens" | "espera">("agenda");
   const [reservasSubTab, setReservasSubTab] = useState<"pending" | "confirmed">("pending");
+  const [searchGuest, setSearchGuest] = useState("");
 
   // DB Data States
   const [sessions, setSessions] = useState<RecordingSession[]>([]);
@@ -1206,47 +1208,89 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
                           </p>
                         </div>
                         
-                        {/* Sub-tab selection */}
-                        <div className="flex bg-neutral-100 p-1 rounded-xl shrink-0 self-start sm:self-auto border border-neutral-200/50">
-                          <button
-                            type="button"
-                            onClick={() => setReservasSubTab("pending")}
-                            className={`px-3 py-1.5 rounded-lg text-2xs font-extrabold transition-all cursor-pointer ${
-                              reservasSubTab === "pending"
-                                ? "bg-white text-primary shadow-xs"
-                                : "text-neutral-500 hover:text-neutral-800"
-                            }`}
-                          >
-                            Pendentes ({reservations.filter(r => r.status !== "confirmed").length})
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setReservasSubTab("confirmed")}
-                            className={`px-3 py-1.5 rounded-lg text-2xs font-extrabold transition-all cursor-pointer ${
-                              reservasSubTab === "confirmed"
-                                ? "bg-white text-primary shadow-xs"
-                                : "text-neutral-500 hover:text-neutral-800"
-                            }`}
-                          >
-                            Confirmados ({reservations.filter(r => r.status === "confirmed" || r.status === "checked_in").length})
-                          </button>
+                        {/* Sub-tab selection & Search input */}
+                        <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between w-full">
+                          <div className="flex bg-neutral-100 p-1 rounded-xl shrink-0 self-start sm:self-auto border border-neutral-200/50">
+                            <button
+                              type="button"
+                              onClick={() => setReservasSubTab("pending")}
+                              className={`px-3 py-1.5 rounded-lg text-2xs font-extrabold transition-all cursor-pointer ${
+                                reservasSubTab === "pending"
+                                  ? "bg-white text-primary shadow-xs"
+                                  : "text-neutral-500 hover:text-neutral-800"
+                              }`}
+                            >
+                              Pendentes ({reservations.filter(r => r.status !== "confirmed").length})
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setReservasSubTab("confirmed")}
+                              className={`px-3 py-1.5 rounded-lg text-2xs font-extrabold transition-all cursor-pointer ${
+                                reservasSubTab === "confirmed"
+                                  ? "bg-white text-primary shadow-xs"
+                                  : "text-neutral-500 hover:text-neutral-800"
+                              }`}
+                            >
+                              Confirmados ({reservations.filter(r => r.status === "confirmed" || r.status === "checked_in").length})
+                            </button>
+                          </div>
+
+                          <div className="relative flex-1 max-w-sm">
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-neutral-400">
+                              <Search className="w-3.5 h-3.5" />
+                            </span>
+                            <input
+                              type="text"
+                              placeholder="Buscar por convidado ou e-mail..."
+                              value={searchGuest}
+                              onChange={(e) => setSearchGuest(e.target.value)}
+                              className="w-full pl-8.5 pr-8 py-1.5 bg-neutral-50 text-xs border border-neutral-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-primary focus:bg-white placeholder-neutral-400 font-sans"
+                            />
+                            {searchGuest && (
+                              <button
+                                type="button"
+                                onClick={() => setSearchGuest("")}
+                                className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-neutral-400 hover:text-neutral-600 cursor-pointer"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
 
                       <div className="space-y-4">
                         {(() => {
-                          const filteredRes = reservations.filter(r => 
-                            reservasSubTab === "confirmed" 
-                              ? (r.status === "confirmed" || r.status === "checked_in")
-                              : (r.status !== "confirmed" && r.status !== "checked_in")
-                          );
+                          const normalizedSearch = searchGuest.toLowerCase().trim();
+                          const filteredRes = reservations
+                            .filter(r => 
+                              reservasSubTab === "confirmed" 
+                                ? (r.status === "confirmed" || r.status === "checked_in")
+                                : (r.status !== "confirmed" && r.status !== "checked_in")
+                            )
+                            .filter(r => {
+                              if (!normalizedSearch) return true;
+                              const mainNameMatch = (r.name || "").toLowerCase().includes(normalizedSearch);
+                              const emailMatch = (r.email || "").toLowerCase().includes(normalizedSearch);
+                              const topicMatch = (r.topic || "").toLowerCase().includes(normalizedSearch);
+                              const guestMatch = r.guests?.some(g => 
+                                (g.name || "").toLowerCase().includes(normalizedSearch) ||
+                                (g.email || "").toLowerCase().includes(normalizedSearch)
+                              );
+                              return mainNameMatch || emailMatch || topicMatch || guestMatch;
+                            })
+                            .sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt", { sensitivity: "base" }));
 
                           if (filteredRes.length === 0) {
                             return (
-                              <div className="p-12 text-center text-neutral-400 text-xs bg-neutral-50 border border-neutral-100 rounded-3xl">
-                                {reservasSubTab === "confirmed" 
-                                  ? "Nenhum agendamento foi confirmado ou sincronizado com o Google Agenda ainda."
-                                  : "Nenhum participante com agendamento pendente de aprovação!"}
+                              <div className="p-12 text-center text-neutral-400 text-xs bg-neutral-50 border border-neutral-100 rounded-3xl font-sans">
+                                {searchGuest ? (
+                                  <span>Nenhum participante encontrado para "<strong>{searchGuest}</strong>".</span>
+                                ) : reservasSubTab === "confirmed" ? (
+                                  "Nenhum agendamento foi confirmado ou sincronizado com o Google Agenda ainda."
+                                ) : (
+                                  "Nenhum participante com agendamento pendente de aprovação!"
+                                )}
                               </div>
                             );
                           }

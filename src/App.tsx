@@ -581,6 +581,66 @@ export default function App() {
                   </div>
                 </div>
               </div>
+
+              {/* Redes Sociais em Destaque */}
+              <div id="redes" className="pt-6 border-t border-neutral-100 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                  <span className="text-xs font-extrabold text-on-surface uppercase tracking-wider font-sans">
+                    Nossas Redes Sociais em Destaque
+                  </span>
+                </div>
+                <p className="text-xs text-ink-subtle leading-relaxed">
+                  Confira nossos cortes diários, bastidores e participe do nosso ecossistema através dos nossos canais oficiais! Siga a Eunice Vargas e acompanhe cada novidade do Café com Internet:
+                </p>
+                <div className="flex flex-wrap gap-2.5 pt-1">
+                  <a
+                    href="https://www.instagram.com/nicevargas.mkt/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 px-4.5 py-2.5 rounded-full bg-gradient-to-r from-[#8a3ab9] via-[#e95950] to-[#fccc63] text-white text-xs font-bold hover:scale-[1.04] active:scale-95 duration-200 transition-all shadow-md shadow-orange-500/10 cursor-pointer"
+                  >
+                    <Instagram className="w-4.5 h-4.5" />
+                    <span>Instagram (@nicevargas.mkt)</span>
+                  </a>
+                  <a
+                    href="https://www.youtube.com/@cafecominternet-podcast"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 px-4.5 py-2.5 rounded-full bg-[#FF0000] text-white text-xs font-bold hover:scale-[1.04] active:scale-95 duration-200 transition-all shadow-md shadow-red-600/10 cursor-pointer"
+                  >
+                    <Youtube className="w-4.5 h-4.5" />
+                    <span>YouTube</span>
+                  </a>
+                  <a
+                    href="https://www.tiktok.com/@cafecomintenert"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 px-4.5 py-2.5 rounded-full bg-black text-white text-xs font-bold hover:scale-[1.04] active:scale-95 duration-200 transition-all shadow-md shadow-black/15 border border-neutral-800 cursor-pointer"
+                  >
+                    <Music className="w-4.5 h-4.5" />
+                    <span>TikTok</span>
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/in/eunicevargasmkt/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 px-4.5 py-2.5 rounded-full bg-[#0A66C2] text-white text-xs font-bold hover:scale-[1.04] active:scale-95 duration-200 transition-all shadow-md shadow-blue-600/10 cursor-pointer"
+                  >
+                    <Linkedin className="w-4.5 h-4.5" />
+                    <span>LinkedIn</span>
+                  </a>
+                  <a
+                    href="https://www.facebook.com/Curtatche"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 px-4.5 py-2.5 rounded-full bg-[#1877F2] text-white text-xs font-bold hover:scale-[1.04] active:scale-95 duration-200 transition-all shadow-md shadow-[#1877F2]/10 cursor-pointer"
+                  >
+                    <Facebook className="w-4.5 h-4.5" />
+                    <span>Facebook</span>
+                  </a>
+                </div>
+              </div>
             </div>
 
           </div>
@@ -1133,6 +1193,33 @@ export default function App() {
               </div>
 
               <div className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl space-y-3 text-white">
+                <span className="text-xs font-bold block text-[#e8728a] uppercase tracking-wider">
+                  Nossas Redes Sociais
+                </span>
+                <p className="text-[11px] text-white/75 leading-relaxed">
+                  Fique por dentro de todos os cortes, bastidores e novidades diárias! Conecte-se conosco agora:
+                </p>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <a href="https://www.instagram.com/nicevargas.mkt/" target="_blank" rel="noreferrer" className="flex items-center gap-2 p-2 rounded-xl bg-white/5 hover:bg-[#e1306c]/15 text-white hover:text-[#e1306c] text-[11px] font-bold transition-all border border-white/10 hover:border-[#e1306c]/30">
+                    <Instagram className="w-4 h-4 text-[#e1306c]" />
+                    <span>Instagram</span>
+                  </a>
+                  <a href="https://www.youtube.com/@cafecominternet-podcast" target="_blank" rel="noreferrer" className="flex items-center gap-2 p-2 rounded-xl bg-white/5 hover:bg-[#ff0000]/15 text-white hover:text-[#ff0000] text-[11px] font-bold transition-all border border-white/10 hover:border-[#ff0000]/30">
+                    <Youtube className="w-4 h-4 text-[#ff0000]" />
+                    <span>YouTube</span>
+                  </a>
+                  <a href="https://www.tiktok.com/@cafecomintenert" target="_blank" rel="noreferrer" className="flex items-center gap-2 p-2 rounded-xl bg-white/5 hover:bg-neutral-800/40 text-white hover:text-white text-[11px] font-bold transition-all border border-white/10 hover:border-white/35">
+                    <Music className="w-4 h-4 text-neutral-200" />
+                    <span>TikTok</span>
+                  </a>
+                  <a href="https://www.linkedin.com/in/eunicevargasmkt/" target="_blank" rel="noreferrer" className="flex items-center gap-2 p-2 rounded-xl bg-white/5 hover:bg-[#0077b5]/15 text-white hover:text-[#0077b5] text-[11px] font-bold transition-all border border-white/10 hover:border-[#0077b5]/30">
+                    <Linkedin className="w-4 h-4 text-[#0077b5]" />
+                    <span>LinkedIn</span>
+                  </a>
+                </div>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-2xl space-y-3 text-white">
                 <span className="text-xs font-bold block text-primary-container flex items-center gap-1">
                   <Compass className="w-3.5 h-3.5 text-[#e8728a]" /> Estúdio Central
                 </span>
@@ -1244,28 +1331,28 @@ export default function App() {
           </p>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-6 text-xs text-secondary font-semibold">
-          <a href="https://www.instagram.com/nicevargas.mkt/" target="_blank" rel="noreferrer" className="hover:text-[#a13b53] transition-colors flex items-center gap-1">
-            <Instagram className="w-4 h-4 text-primary" />
+        <div className="flex flex-wrap justify-center gap-4.5 text-xs font-bold text-secondary">
+          <a href="https://www.instagram.com/nicevargas.mkt/" target="_blank" rel="noreferrer" className="hover:text-white hover:bg-gradient-to-r hover:from-[#c13584] hover:to-[#e1306c] hover:shadow-md px-3.5 py-2 rounded-full border border-neutral-300/35 hover:border-transparent transition-all flex items-center gap-1.5 cursor-pointer">
+            <Instagram className="w-4 h-4 text-[#e1306c]" />
             Instagram
           </a>
-          <a href="https://www.youtube.com/@cafecominternet-podcast" target="_blank" rel="noreferrer" className="hover:text-[#a13b53] transition-colors flex items-center gap-1">
-            <Youtube className="w-4 h-4 text-primary" />
+          <a href="https://www.youtube.com/@cafecominternet-podcast" target="_blank" rel="noreferrer" className="hover:text-white hover:bg-[#ff0000] hover:shadow-md px-3.5 py-2 rounded-full border border-neutral-300/35 hover:border-transparent transition-all flex items-center gap-1.5 cursor-pointer">
+            <Youtube className="w-4 h-4 text-[#ff0000]" />
             YouTube
           </a>
-          <a href="https://www.tiktok.com/@cafecomintenert" target="_blank" rel="noreferrer" className="hover:text-[#a13b53] transition-colors flex items-center gap-1">
-            <Music className="w-4 h-4 text-primary" />
+          <a href="https://www.tiktok.com/@cafecomintenert" target="_blank" rel="noreferrer" className="hover:text-white hover:bg-black hover:shadow-md px-3.5 py-2 rounded-full border border-neutral-300/35 hover:border-transparent transition-all flex items-center gap-1.5 cursor-pointer">
+            <Music className="w-4 h-4" />
             TikTok
           </a>
-          <a href="https://www.facebook.com/Curtatche" target="_blank" rel="noreferrer" className="hover:text-[#a13b53] transition-colors flex items-center gap-1">
-            <Facebook className="w-4 h-4 text-primary" />
+          <a href="https://www.facebook.com/Curtatche" target="_blank" rel="noreferrer" className="hover:text-white hover:bg-[#1877f2] hover:shadow-md px-3.5 py-2 rounded-full border border-neutral-300/35 hover:border-transparent transition-all flex items-center gap-1.5 cursor-pointer">
+            <Facebook className="w-4 h-4 text-[#1877f2]" />
             Facebook
           </a>
-          <a href="https://www.linkedin.com/in/eunicevargasmkt/" target="_blank" rel="noreferrer" className="hover:text-[#a13b53] transition-colors flex items-center gap-1">
-            <Linkedin className="w-4 h-4 text-primary" />
+          <a href="https://www.linkedin.com/in/eunicevargasmkt/" target="_blank" rel="noreferrer" className="hover:text-white hover:bg-[#0077b5] hover:shadow-md px-3.5 py-2 rounded-full border border-neutral-300/35 hover:border-transparent transition-all flex items-center gap-1.5 cursor-pointer">
+            <Linkedin className="w-4 h-4 text-[#0077b5]" />
             LinkedIn
           </a>
-          <a href="https://adesampa.com.br/estudios-de-gravacao/" target="_blank" rel="noreferrer" className="hover:text-[#a13b53] transition-colors">
+          <a href="https://adesampa.com.br/estudios-de-gravacao/" target="_blank" rel="noreferrer" className="hover:text-white hover:bg-neutral-800 hover:shadow-md px-3.5 py-2 rounded-full border border-neutral-300/35 hover:border-transparent transition-all flex items-center gap-1.5 cursor-pointer">
             Sobre o SampaCast
           </a>
         </div>

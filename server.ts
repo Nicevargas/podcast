@@ -130,8 +130,39 @@ async function startServer() {
     reservations: any[];
     feedback: any[];
     waitingList: any[];
+    banners?: any[];
     admin: any;
   }
+
+  const INITIAL_BANNERS = [
+    {
+      id: "banner-1",
+      title: "Workshop de Oratória & Gravação de Vídeo de Alta Performance",
+      subtitle: "Aprenda a falar com naturalidade, perder a timidez e dominar as câmeras",
+      description: "Um dia intensivo focado em destravar sua comunicação em frente às câmeras do SampaCast. Teoria e prática imediata de estúdio com Eunice Vargas.",
+      buttonText: "Inscrição Gratuita",
+      buttonLink: "https://adesampa.com.br/estudios-de-gravacao/",
+      imageUrl: "https://agencia.curtatche.com.br/podcast_episodio2.jpeg",
+      type: "workshop",
+      startDate: "12 de Julho, 2026",
+      status: "active",
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "banner-2",
+      title: "Curso Prático de Marketing Digital para Pequenos Negócios",
+      subtitle: "Atraia mais clientes através de estratégias fáceis de redes sociais",
+      description: "Curso focado em pequenos empreendedores que desejam alavancar suas vendas no Instagram e TikTok sem complicação.",
+      buttonText: "Saber Mais",
+      buttonLink: "https://www.instagram.com/nicevargas.mkt/",
+      imageUrl: "https://agencia.curtatche.com.br/spcast_lapa.jpg",
+      type: "curso",
+      startDate: "28 de Julho, 2026",
+      status: "active",
+      createdAt: new Date().toISOString()
+    }
+  ];
+
 
   const INITIAL_SESSIONS = [
     {
@@ -284,6 +315,10 @@ async function startServer() {
          if (!data.waitingList) {
            data.waitingList = [];
          }
+         if (!data.banners) {
+           data.banners = INITIAL_BANNERS;
+           fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), "utf-8");
+         }
          // Append missing seed sessions (like Sampa Cast - Lapa) if they don't exist
          if (data.sessions && !data.sessions.some((s: any) => s.id === "session-7")) {
            const missing = INITIAL_SESSIONS.filter((is: any) => !data.sessions.some((s: any) => s.id === is.id));
@@ -302,6 +337,7 @@ async function startServer() {
       reservations: [],
       feedback: [],
       waitingList: [],
+      banners: INITIAL_BANNERS,
       admin: { email: "admin@cafe.com", password: "admin" }
     };
     writeDB(defaultDB);
@@ -533,6 +569,53 @@ async function startServer() {
     writeDB(dbData);
     res.json({ success: true });
   });
+
+  // BANNERS (CURSOS & WORKSHOPS)
+  app.get("/api/banners", (req, res) => {
+    const dbData = readDB();
+    res.json(dbData.banners || []);
+  });
+
+  app.post("/api/banners", (req, res) => {
+    const dbData = readDB();
+    const newBanner = req.body;
+    if (!newBanner.id) {
+      newBanner.id = `banner-${Date.now()}`;
+    }
+    if (!dbData.banners) {
+      dbData.banners = [];
+    }
+    dbData.banners.push(newBanner);
+    writeDB(dbData);
+    res.status(201).json(newBanner);
+  });
+
+  app.put("/api/banners/:id", (req, res) => {
+    const dbData = readDB();
+    const { id } = req.params;
+    if (!dbData.banners) {
+      dbData.banners = [];
+    }
+    const index = dbData.banners.findIndex((b) => b.id === id);
+    if (index !== -1) {
+      dbData.banners[index] = { ...dbData.banners[index], ...req.body };
+      writeDB(dbData);
+      res.json(dbData.banners[index]);
+    } else {
+      res.status(404).json({ error: "Banner não encontrado" });
+    }
+  });
+
+  app.delete("/api/banners/:id", (req, res) => {
+    const dbData = readDB();
+    const { id } = req.params;
+    if (dbData.banners) {
+      dbData.banners = dbData.banners.filter((b) => b.id !== id);
+    }
+    writeDB(dbData);
+    res.json({ success: true });
+  });
+
 
   // AUTHENTICATION fallback on backend check
   app.post("/api/auth/signin", (req, res) => {

@@ -63,3 +63,19 @@ export interface WaitingListEntry {
   bestHours: string; // Comma-separated or specific text (e.g. "09:00 - 12:00, 14:00 - 16:00")
   createdAt?: string;
 }
+
+export interface Banner {
+  id: string;
+  title: string;
+  subtitle?: string;
+  description: string;
+  buttonText?: string;
+  buttonLink?: string;
+  imageUrl?: string;
+  type: "curso" | "workshop" | "geral";
+  startDate?: string;
+  startTime?: string;
+  status: "active" | "inactive";
+  createdAt?: string;
+}
+

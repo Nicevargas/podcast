@@ -237,3 +237,45 @@ INSERT INTO public.sessions (id, day, month, year, title, "timeStart", "timeEnd"
 ('session-6', '23', 'Junho', '2026', 'Teia Vergueiro', '10:00', '12:00', 'Teia Vergueiro', 'Av. Vergueiro, 1000 · São Paulo, SP', 3, 3)
 ON CONFLICT (id) DO NOTHING;
 
+
+-- --------------------------------------------------
+-- 6. BANNERS / DIVULGAÇÃO DE CURSOS E WORKSHOPS
+-- --------------------------------------------------
+create table if not exists public.banners (
+    id text primary key,
+    title text not null,
+    subtitle text,
+    description text not null,
+    "buttonText" text,
+    "buttonLink" text,
+    "imageUrl" text,
+    type text not null default 'geral', -- 'curso', 'workshop', 'geral'
+    "startDate" text,
+    "startTime" text,
+    status text not null default 'active', -- 'active', 'inactive'
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Ensure startTime column exists on banners table
+alter table public.banners add column if not exists "startTime" text;
+
+-- Enable RLS for banners
+alter table public.banners enable row level security;
+
+-- Policies for Banners
+drop policy if exists "Allow public read access to banners" on public.banners;
+drop policy if exists "Allow all actions to authenticated admins on banners" on public.banners;
+drop policy if exists "Allow public all actions on banners" on public.banners;
+
+create policy "Allow public all actions on banners" 
+    on public.banners for all 
+    using (true) 
+    with check (true);
+
+-- Banners Seed Data
+INSERT INTO public.banners (id, title, subtitle, description, "buttonText", "buttonLink", "imageUrl", type, "startDate", status) VALUES
+('banner-1', 'Workshop de Oratória & Gravação de Vídeo de Alta Performance', 'Aprenda a falar com naturalidade, perder a timidez e dominar as câmeras', 'Um dia intensivo focado em destravar sua comunicação em frente às câmeras do SampaCast. Teoria e prática imediata de estúdio com Eunice Vargas.', 'Inscrição Gratuita', 'https://adesampa.com.br/estudios-de-gravacao/', 'https://agencia.curtatche.com.br/podcast_episodio2.jpeg', 'workshop', '12 de Julho, 2026', 'active'),
+('banner-2', 'Curso Prático de Marketing Digital para Pequenos Negócios', 'Atraia mais clientes através de estratégias fáceis de redes sociais', 'Curso focado em pequenos empreendedores que desejam alavancar suas vendas no Instagram e TikTok sem complicação.', 'Saber Mais', 'https://www.instagram.com/nicevargas.mkt/', 'https://agencia.curtatche.com.br/spcast_lapa.jpg', 'curso', '28 de Julho, 2026', 'active')
+ON CONFLICT (id) DO NOTHING;
+
+

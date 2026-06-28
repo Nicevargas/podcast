@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { RecordingSession, PodcastEpisode, Reservation, FeedbackMessage, WaitingListEntry } from "./types";
+import { RecordingSession, PodcastEpisode, Reservation, FeedbackMessage, WaitingListEntry, Banner } from "./types";
 import { INITIAL_SESSIONS, PODCAST_EPISODES } from "./data";
 
 // Retrieve environment variables
@@ -145,7 +145,7 @@ export const db = {
             .order("month", { ascending: true })
             .order("day", { ascending: true });
           if (!error && data) return data;
-          if (error) console.error("Supabase sessions list error:", error);
+          if (error) console.warn("Supabase sessions list warning (falling back to central API):", error);
         } catch (error) {
           console.warn("Supabase sessions fetch exception:", error);
         }
@@ -263,7 +263,7 @@ export const db = {
             .select("*")
             .order("created_at", { ascending: false });
           if (!error && data) return data;
-          if (error) console.error("Supabase episodes list error:", error);
+          if (error) console.warn("Supabase episodes list warning (falling back to central API):", error);
         } catch (error) {
           console.warn("Supabase episodes fetch exception:", error);
         }
@@ -388,7 +388,7 @@ export const db = {
               checkInTimestamp: r.checkInTimestamp ?? r.check_id_timestamp ?? undefined
             }));
           }
-          if (error) console.error("Supabase reservations list error:", error);
+          if (error) console.warn("Supabase reservations list warning (falling back to central API):", error);
         } catch (error) {
           console.warn("Supabase reservations fetch exception:", error);
         }
@@ -525,7 +525,7 @@ export const db = {
             .select("*")
             .order("timestamp", { ascending: false });
           if (!error && data) return data;
-          if (error) console.error("Supabase feedback list error:", error);
+          if (error) console.warn("Supabase feedback list warning (falling back to central API):", error);
         } catch (error) {
           console.warn("Supabase feedback fetch exception:", error);
         }
@@ -621,7 +621,7 @@ export const db = {
               createdAt: row.created_at || row.createdAt
             }));
           }
-          if (error) console.error("Supabase waiting list fetch error:", error);
+          if (error) console.warn("Supabase waiting list fetch warning (falling back to central API):", error);
         } catch (error) {
           console.warn("Supabase waiting list fetch exception:", error);
         }
@@ -707,6 +707,206 @@ export const db = {
       } catch (err) {
         console.error("Central API waiting list delete failed:", err);
         return false;
+      }
+    }
+  },
+
+  // --- BANNERS (CURSOS & WORKSHOPS) ---
+  banners: {
+    list: async (): Promise<Banner[]> => {
+      if (isSupabaseConfigured && realSupabase) {
+        try {
+          const { data, error } = await realSupabase
+            .from("banners")
+            .select("*")
+            .order("created_at", { ascending: false });
+          if (!error && data) return data;
+          if (error) console.warn("Supabase banners list warning (falling back to central API):", error);
+        } catch (error) {
+          console.warn("Supabase banners fetch exception:", error);
+        }
+      }
+
+      // Fallback/Non-Supabase
+      try {
+        const res = await fetch("/api/banners");
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.error("Central API banners fetch failed", err);
+      }
+
+      return [];
+    },
+
+    create: async (banner: Omit<Banner, "id">): Promise<Banner> => {
+      const newId = `banner-${Date.now()}`;
+      const newBanner: Banner = { id: newId, ...banner, createdAt: new Date().toISOString() };
+
+      if (isSupabaseConfigured && realSupabase) {
+        // Build a database-compatible payload avoiding frontend-only keys like createdAt/created_at
+        const payload: any = {
+          id: newId,
+          title: banner.title,
+          subtitle: banner.subtitle,
+          description: banner.description,
+          buttonText: banner.buttonText,
+          buttonLink: banner.buttonLink,
+          imageUrl: banner.imageUrl,
+          type: banner.type,
+          startDate: banner.startDate,
+          status: banner.status
+        };
+
+        if (banner.startTime) {
+          payload.startTime = banner.startTime;
+        }
+
+        try {
+          const { error } = await realSupabase
+            .from("banners")
+            .insert([payload]);
+
+          if (error) {
+            // Check if error is due to missing startTime column in the database
+            const errorMsg = String(error.message || "").toLowerCase();
+            const errorCode = String(error.code || "");
+            if (payload.startTime && (errorCode === "PGRST102" || errorCode === "42703" || errorMsg.includes("starttime") || errorMsg.includes("column"))) {
+              console.warn("Supabase banners table might be missing 'startTime' column. Retrying insert without 'startTime'...");
+              const fallbackPayload = { ...payload };
+              delete fallbackPayload.startTime;
+              const { error: retryError } = await realSupabase
+                .from("banners")
+                .insert([fallbackPayload]);
+              
+              if (retryError) {
+                console.error("Supabase banner insert retry error:", retryError);
+                throw retryError;
+              }
+            } else {
+              console.error("Supabase banner insert error:", error);
+              throw error;
+            }
+          }
+          return newBanner;
+        } catch (err) {
+          console.error("Supabase banner insert exception. Falling back to Central API:", err);
+        }
+      }
+
+      // Fallback/Non-Supabase
+      try {
+        const res = await fetch("/api/banners", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newBanner)
+        });
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.error("Central API banner create failed:", err);
+      }
+
+      return newBanner;
+    },
+
+    update: async (id: string, updates: Partial<Banner>): Promise<Banner> => {
+      if (isSupabaseConfigured && realSupabase) {
+        const payload: any = {};
+        if (updates.title !== undefined) payload.title = updates.title;
+        if (updates.subtitle !== undefined) payload.subtitle = updates.subtitle;
+        if (updates.description !== undefined) payload.description = updates.description;
+        if (updates.buttonText !== undefined) payload.buttonText = updates.buttonText;
+        if (updates.buttonLink !== undefined) payload.buttonLink = updates.buttonLink;
+        if (updates.imageUrl !== undefined) payload.imageUrl = updates.imageUrl;
+        if (updates.type !== undefined) payload.type = updates.type;
+        if (updates.startDate !== undefined) payload.startDate = updates.startDate;
+        if (updates.status !== undefined) payload.status = updates.status;
+        if (updates.startTime !== undefined) payload.startTime = updates.startTime;
+
+        try {
+          const { error } = await realSupabase
+            .from("banners")
+            .update(payload)
+            .eq("id", id);
+
+          if (error) {
+            const errorMsg = String(error.message || "").toLowerCase();
+            const errorCode = String(error.code || "");
+            if (payload.startTime !== undefined && (errorCode === "PGRST102" || errorCode === "42703" || errorMsg.includes("starttime") || errorMsg.includes("column"))) {
+              console.warn("Supabase banners table might be missing 'startTime' column. Retrying update without 'startTime'...");
+              const fallbackPayload = { ...payload };
+              delete fallbackPayload.startTime;
+              const { error: retryError } = await realSupabase
+                .from("banners")
+                .update(fallbackPayload)
+                .eq("id", id);
+              
+              if (retryError) {
+                console.error("Supabase banner update retry error:", retryError);
+                throw retryError;
+              }
+            } else {
+              console.error("Supabase banner update error:", error);
+              throw error;
+            }
+          }
+          return { id, ...updates } as Banner;
+        } catch (err) {
+          console.error("Supabase banner update exception. Falling back to Central API:", err);
+        }
+      }
+
+      // Fallback/Non-Supabase
+      try {
+        const res = await fetch(`/api/banners/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates)
+        });
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.error("Central API banner update failed:", err);
+      }
+
+      throw new Error("Erro ao atualizar banner.");
+    },
+
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && realSupabase) {
+        try {
+          const { error } = await realSupabase
+            .from("banners")
+            .delete()
+            .eq("id", id);
+          if (!error) {
+            return true;
+          }
+          console.error("Supabase banner delete error:", error);
+          throw new Error(error.message || "Erro de RLS ou permissão no Supabase.");
+        } catch (err: any) {
+          console.error("Supabase banner delete exception:", err);
+          throw new Error(err.message || "Falha de comunicação ou permissão no Supabase.");
+        }
+      }
+
+      // Fallback/Non-Supabase
+      try {
+        const res = await fetch(`/api/banners/${id}`, {
+          method: "DELETE"
+        });
+        if (res.ok) {
+          return true;
+        }
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Erro no servidor local.");
+      } catch (err: any) {
+        console.error("Central API banner delete failed:", err);
+        throw new Error(err.message || "Erro ao deletar banner do servidor central.");
       }
     }
   }

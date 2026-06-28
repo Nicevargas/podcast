@@ -18,10 +18,11 @@ import {
   Clock,
   Link,
   MapPin,
-  Search
+  Search,
+  Sparkles
 } from "lucide-react";
 import { db } from "../supabaseClient";
-import { RecordingSession, PodcastEpisode, Reservation, FeedbackMessage, WaitingListEntry } from "../types";
+import { RecordingSession, PodcastEpisode, Reservation, FeedbackMessage, WaitingListEntry, Banner } from "../types";
 
 interface AdminPortalProps {
   onClose: () => void;
@@ -35,7 +36,7 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [authSuccess, setAuthSuccess] = useState("");
-  const [activeTab, setActiveTab] = useState<"agenda" | "videos" | "reservas" | "mensagens" | "espera">("agenda");
+  const [activeTab, setActiveTab] = useState<"agenda" | "videos" | "reservas" | "mensagens" | "espera" | "banners">("agenda");
   const [reservasSubTab, setReservasSubTab] = useState<"pending" | "confirmed">("pending");
   const [searchGuest, setSearchGuest] = useState("");
 
@@ -45,6 +46,7 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [feedback, setFeedback] = useState<FeedbackMessage[]>([]);
   const [waitingList, setWaitingList] = useState<WaitingListEntry[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Form States
@@ -74,9 +76,23 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
     guestName3: "",
     guestRole3: ""
   });
+  const [bannerForm, setBannerForm] = useState<Partial<Banner>>({
+    title: "",
+    subtitle: "",
+    description: "",
+    buttonText: "Saiba Mais",
+    buttonLink: "",
+    imageUrl: "https://agencia.curtatche.com.br/podcast_episodio2.jpeg",
+    type: "curso",
+    startDate: "",
+    startTime: "",
+    status: "active"
+  });
 
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingEpisodeId, setEditingEpisodeId] = useState<string | null>(null);
+  const [editingBannerId, setEditingBannerId] = useState<string | null>(null);
+
 
   const [actionError, setActionError] = useState("");
   const [actionSuccess, setActionSuccess] = useState("");
@@ -266,12 +282,14 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
       const rList = await db.reservations.list();
       const fList = await db.feedback.list();
       const wList = await db.waitingList.list();
+      const bList = await db.banners.list();
       
       setSessions(sList);
       setEpisodes(eList);
       setReservations(rList);
       setFeedback(fList);
       setWaitingList(wList);
+      setBanners(bList);
     } catch (err: any) {
       console.error("Failed to load admin data:", err);
     } finally {
@@ -446,6 +464,73 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
       setActionError(err.message || "Erro ao deletar episódio");
     }
   };
+
+  // Banner Actions (Cursos & Workshops)
+  const handleBannerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionError("");
+    setActionSuccess("");
+    try {
+      if (editingBannerId) {
+        await db.banners.update(editingBannerId, bannerForm);
+        setActionSuccess("Curso/Workshop modificado com sucesso!");
+      } else {
+        await db.banners.create({
+          title: bannerForm.title || "Sem título",
+          subtitle: bannerForm.subtitle || "",
+          description: bannerForm.description || "",
+          buttonText: bannerForm.buttonText || "Saiba Mais",
+          buttonLink: bannerForm.buttonLink || "#",
+          imageUrl: bannerForm.imageUrl || "https://agencia.curtatche.com.br/podcast_episodio2.jpeg",
+          type: bannerForm.type || "curso",
+          startDate: bannerForm.startDate || "",
+          startTime: bannerForm.startTime || "",
+          status: bannerForm.status || "active"
+        });
+        setActionSuccess("Novo Curso/Workshop cadastrado com sucesso!");
+      }
+
+      setBannerForm({
+        title: "",
+        subtitle: "",
+        description: "",
+        buttonText: "Saiba Mais",
+        buttonLink: "",
+        imageUrl: "https://agencia.curtatche.com.br/podcast_episodio2.jpeg",
+        type: "curso",
+        startDate: "",
+        startTime: "",
+        status: "active"
+      });
+      setEditingBannerId(null);
+      await loadAllData();
+      onDataChanged();
+    } catch (err: any) {
+      setActionError(err.message || "Erro ao salvar banner");
+    }
+  };
+
+  const startEditBanner = (b: Banner) => {
+    setEditingBannerId(b.id);
+    setBannerForm(b);
+    document.getElementById("banner-form-heading")?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleDeleteBanner = async (id: string) => {
+    if (!window.confirm("Deseja realmente excluir este curso/workshop?")) return;
+    try {
+      setActionError("");
+      setActionSuccess("");
+      await db.banners.delete(id);
+      setActionSuccess("Curso/Workshop excluído com sucesso!");
+      await loadAllData();
+      onDataChanged();
+    } catch (err: any) {
+      console.error("Erro ao deletar banner:", err);
+      setActionError("Erro ao remover banner: " + (err.message || err));
+    }
+  };
+
 
   // Reservation Actions
   const handleDeleteReservation = async (id: string) => {
@@ -684,6 +769,24 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
                     </span>
                   )}
                 </button>
+
+                <button
+                  onClick={() => { setActiveTab("banners"); setActionSuccess(""); setActionError(""); }}
+                  className={`w-full flex items-center gap-2.5 px-3.5 py-3 rounded-xl text-xs font-bold transition-all text-left cursor-pointer relative ${
+                    activeTab === "banners"
+                      ? "bg-primary text-white shadow-md shadow-primary/10"
+                      : "text-neutral-600 hover:bg-neutral-200/50"
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Cursos & Workshops
+                  {banners.length > 0 && (
+                    <span className="absolute right-3.5 top-3 w-5 h-5 flex items-center justify-center text-[10px] font-bold bg-indigo-500 text-white rounded-full">
+                      {banners.length}
+                    </span>
+                  )}
+                </button>
+
               </div>
 
               <div className="pt-6 mt-6 border-t border-neutral-200">
@@ -1624,6 +1727,266 @@ export default function AdminPortal({ onClose, onDataChanged }: AdminPortalProps
                             </div>
                           ))
                         )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* --- TAB 6: CURSOS & WORKSHOPS (BANNERS) --- */}
+                  {activeTab === "banners" && (
+                    <div className="space-y-8">
+                      <div>
+                        <h3 className="font-sans font-black text-xl text-on-surface tracking-tight" id="banner-form-heading">
+                          {editingBannerId ? "✏️ Editar Curso / Workshop" : "✨ Criar Novo Banner de Divulgação"}
+                        </h3>
+                        <p className="text-neutral-500 text-xs mt-1">
+                          Gerencie banners informativos para divulgar seus cursos presenciais, workshops de marketing, oratória e mentorias.
+                        </p>
+                      </div>
+
+                      <form onSubmit={handleBannerSubmit} className="bg-neutral-50 border border-neutral-100 rounded-2xl p-5 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Título do Banner</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="ex: Curso Prático de Oratória e Destrave de Vídeos"
+                              value={bannerForm.title || ""}
+                              onChange={(e) => setBannerForm({...bannerForm, title: e.target.value})}
+                              className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Subtítulo / Chamada Rápida</label>
+                            <input
+                              type="text"
+                              placeholder="ex: Aprenda a se comunicar de forma marcante e profissional"
+                              value={bannerForm.subtitle || ""}
+                              onChange={(e) => setBannerForm({...bannerForm, subtitle: e.target.value})}
+                              className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Descrição Curta (Benefícios & Detalhes)</label>
+                          <textarea
+                            required
+                            rows={3}
+                            placeholder="Descreva o que o participante aprenderá, cronograma, vantagens de participar e público-alvo..."
+                            value={bannerForm.description || ""}
+                            onChange={(e) => setBannerForm({...bannerForm, description: e.target.value})}
+                            className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden whitespace-pre-wrap"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <div>
+                            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Tipo de Divulgação</label>
+                            <select
+                              value={bannerForm.type || "curso"}
+                              onChange={(e) => setBannerForm({...bannerForm, type: e.target.value as any})}
+                              className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
+                            >
+                              <option value="curso">Curso</option>
+                              <option value="workshop">Workshop</option>
+                              <option value="geral">Geral / Mentoria</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Data / Período de Início</label>
+                            <input
+                              type="text"
+                              placeholder="ex: 12 de Julho, 2026"
+                              value={bannerForm.startDate || ""}
+                              onChange={(e) => setBannerForm({...bannerForm, startDate: e.target.value})}
+                              className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Horário do Evento</label>
+                            <input
+                              type="text"
+                              placeholder="ex: 19:00 às 22:00"
+                              value={bannerForm.startTime || ""}
+                              onChange={(e) => setBannerForm({...bannerForm, startTime: e.target.value})}
+                              className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Status de Exibição</label>
+                            <select
+                              value={bannerForm.status || "active"}
+                              onChange={(e) => setBannerForm({...bannerForm, status: e.target.value as any})}
+                              className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
+                            >
+                              <option value="active">Ativo (Exibido no Site)</option>
+                              <option value="inactive">Pausado (Oculto)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Texto do Botão (CTA)</label>
+                            <input
+                              type="text"
+                              placeholder="ex: Inscrição Gratuita"
+                              value={bannerForm.buttonText || ""}
+                              onChange={(e) => setBannerForm({...bannerForm, buttonText: e.target.value})}
+                              className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
+                            />
+                          </div>
+
+                          <div className="md:col-span-2">
+                            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Link de Destino do Botão</label>
+                            <input
+                              type="url"
+                              placeholder="ex: https://site.com/curso-inscricao ou link do WhatsApp"
+                              value={bannerForm.buttonLink || ""}
+                              onChange={(e) => setBannerForm({...bannerForm, buttonLink: e.target.value})}
+                              className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between items-center mb-1">
+                            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider">URL da Imagem de Capa</label>
+                            <span className="text-[10px] font-semibold text-primary italic">Resolução ideal: 1920x820px (Proporção 21:9 ou 16:9)</span>
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="ex: https://agencia.curtatche.com.br/spcast_lapa.jpg"
+                            value={bannerForm.imageUrl || ""}
+                            onChange={(e) => setBannerForm({...bannerForm, imageUrl: e.target.value})}
+                            className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 text-neutral-800 outline-hidden"
+                          />
+                          <p className="text-[10px] text-neutral-500 mt-1">
+                            Como o site é responsivo, o banner é alinhado ao <strong>topo e à esquerda (object-left-top)</strong>. Use imagens horizontais de <strong>1920x820px</strong> para garantir o enquadramento perfeito sem cortes indesejados.
+                          </p>
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-2">
+                          {editingBannerId && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingBannerId(null);
+                                setBannerForm({
+                                  title: "",
+                                  subtitle: "",
+                                  description: "",
+                                  buttonText: "Saiba Mais",
+                                  buttonLink: "",
+                                  imageUrl: "https://agencia.curtatche.com.br/podcast_episodio2.jpeg",
+                                  type: "curso",
+                                  startDate: "",
+                                  status: "active"
+                                });
+                              }}
+                              className="px-5 py-2.5 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                            >
+                              Cancelar
+                            </button>
+                          )}
+                          <button
+                            type="submit"
+                            className="px-6 py-2.5 bg-primary hover:bg-primary-container text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>{editingBannerId ? "Salvar Alterações" : "Cadastrar Banner"}</span>
+                          </button>
+                        </div>
+                      </form>
+
+                      {/* LISTING */}
+                      <div>
+                        <h4 className="font-sans font-black text-base text-neutral-800 mb-4">
+                          Banners Cadastrados ({banners.length})
+                        </h4>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {banners.length === 0 ? (
+                            <div className="md:col-span-2 p-12 text-center text-neutral-400 text-xs bg-neutral-50 border border-neutral-100 rounded-3xl">
+                              Nenhum banner cadastrado para cursos ou workshops.
+                            </div>
+                          ) : (
+                            banners.map((b) => (
+                              <div key={b.id} className="bg-white border border-neutral-100 rounded-2xl overflow-hidden relative shadow-xs flex flex-col justify-between hover:border-neutral-200 transition-colors">
+                                <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                                  <button
+                                    onClick={() => startEditBanner(b)}
+                                    className="w-8 h-8 rounded-full bg-white hover:bg-neutral-100 text-neutral-700 transition-colors flex items-center justify-center shadow-xs cursor-pointer"
+                                    title="Editar Banner"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteBanner(b.id)}
+                                    className="w-8 h-8 rounded-full bg-white hover:bg-rose-50 text-rose-600 transition-colors flex items-center justify-center shadow-xs cursor-pointer"
+                                    title="Excluir Banner"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+
+                                <div>
+                                  <div className="h-32 bg-neutral-100 relative">
+                                    <img
+                                      src={b.imageUrl || "https://agencia.curtatche.com.br/podcast_episodio2.jpeg"}
+                                      alt={b.title}
+                                      referrerPolicy="no-referrer"
+                                      className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent" />
+                                    <div className="absolute bottom-3 left-3 flex gap-2">
+                                      <span className={`text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded-md text-white select-none ${
+                                        b.type === "workshop" ? "bg-indigo-600" : b.type === "curso" ? "bg-[#cd6a5a]" : "bg-neutral-700"
+                                      }`}>
+                                        {b.type}
+                                      </span>
+                                      <span className={`text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded-md text-white select-none ${
+                                        b.status === "active" ? "bg-emerald-600" : "bg-neutral-500"
+                                      }`}>
+                                        {b.status === "active" ? "Ativo" : "Pausado"}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="p-4 space-y-2">
+                                    <h5 className="font-sans font-extrabold text-sm text-neutral-800 leading-snug">{b.title}</h5>
+                                    {b.subtitle && (
+                                      <p className="text-xs font-semibold text-neutral-500 leading-normal">{b.subtitle}</p>
+                                    )}
+                                    <p className="text-xs text-neutral-600 leading-relaxed line-clamp-3 whitespace-pre-wrap">{b.description}</p>
+                                  </div>
+                                </div>
+
+                                <div className="p-4 pt-0 border-t border-neutral-50 flex items-center justify-between text-xs mt-2">
+                                  <span className="font-bold text-neutral-400 flex flex-col">
+                                    <span>📅 {b.startDate || "Fluxo Contínuo"}</span>
+                                    {b.startTime && <span className="text-[10px] text-neutral-500 font-medium">🕒 {b.startTime}</span>}
+                                  </span>
+                                  {b.buttonLink && (
+                                    <a
+                                      href={b.buttonLink}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-primary hover:underline font-bold"
+                                    >
+                                      {b.buttonText || "Saiba Mais"} →
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}

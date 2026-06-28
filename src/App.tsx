@@ -288,7 +288,7 @@ export default function App() {
   })();
 
   return (
-    <div className="min-h-screen bg-[#f9f9f9] pb-32 pt-20 flex flex-col font-sans selection:bg-[#FADADD] selection:text-[#620726]">
+    <div className="min-h-screen bg-[#f9f9f9] pb-32 pt-0 flex flex-col font-sans selection:bg-[#FADADD] selection:text-[#620726]">
       
       {/* Header navigation bar */}
       <Header
@@ -301,8 +301,8 @@ export default function App() {
 
       {/* Hero Section */}
       {activeBanners.length > 0 ? (
-        <header id="inicio" className="relative w-full overflow-hidden bg-neutral-950 pt-20">
-          <div className="relative w-full h-[380px] md:h-[440px] lg:h-[500px] xl:h-[540px] 2xl:h-[580px] flex items-center">
+        <header id="inicio" className="relative w-full overflow-hidden bg-neutral-900 pt-0">
+          <div className="relative w-full h-[500px] md:h-[680px] lg:h-[820px] flex items-center">
             <AnimatePresence mode="wait">
               {activeBanners.map((b, idx) => {
                 if (idx !== currentBannerIndex) return null;
@@ -328,12 +328,12 @@ export default function App() {
                         referrerPolicy="no-referrer"
                         className="w-full h-full object-cover object-left-top"
                       />
-                      <div className="absolute inset-0 bg-black/60 pointer-events-none" />
-                      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent pointer-events-none" />
+                      <div className="absolute inset-0 bg-black/25 pointer-events-none" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/15 to-transparent pointer-events-none" />
                     </motion.div>
 
                     {/* Content */}
-                    <div className="max-w-7xl mx-auto px-6 md:px-10 relative z-10 w-full text-white space-y-3 md:space-y-4">
+                    <div className="max-w-7xl mx-auto px-6 md:px-10 relative z-10 w-full text-white space-y-3 md:space-y-4 pt-24 md:pt-32 pb-8">
                       <motion.span
                         initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -442,7 +442,7 @@ export default function App() {
           </div>
         </header>
       ) : (
-        <header id="inicio" className="relative pt-12 pb-20 md:pt-24 md:pb-32 overflow-hidden bg-gradient-to-b from-[#FADADD]/15 via-transparent to-transparent">
+        <header id="inicio" className="relative pt-32 pb-20 md:pt-44 md:pb-32 overflow-hidden bg-gradient-to-b from-[#FADADD]/15 via-transparent to-transparent">
           
           {/* Background visual graphics */}
           <div className="absolute top-1/4 right-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl -z-10" />

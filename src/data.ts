@@ -104,6 +104,32 @@ export const INITIAL_SESSIONS: RecordingSession[] = [
     address: "R. Catão, 611 - Vila Romana, São Paulo",
     spotsLeft: 3,
     totalSpots: 3
+  },
+  {
+    id: "session-9",
+    day: "20",
+    month: "Junho",
+    year: "2026",
+    title: "Studio Teia Tamanduateí",
+    timeStart: "09:00",
+    timeEnd: "11:00",
+    location: "Studio Teia Tamanduateí",
+    address: "Av. Presidente Wilson, 4801 - Vila Independencia, São Paulo",
+    spotsLeft: 3,
+    totalSpots: 3
+  },
+  {
+    id: "session-10",
+    day: "25",
+    month: "Junho",
+    year: "2026",
+    title: "Studio Teia Tamanduateí",
+    timeStart: "14:00",
+    timeEnd: "16:00",
+    location: "Studio Teia Tamanduateí",
+    address: "Av. Presidente Wilson, 4801 - Vila Independencia, São Paulo",
+    spotsLeft: 2,
+    totalSpots: 3
   }
 ];
 
@@ -131,6 +157,12 @@ export const STUDIO_LOCATIONS = [
     address: "R. Catão, 611 - Vila Romana, São Paulo",
     description: "Estúdio de gravação de podcast premium na Lapa totalmente equipado com isolamento acústico de alto padrão, iluminação cenográfica profissional, câmeras DSLR e microfones Shure, ideal para episódios marcantes.",
     image: "https://agencia.curtatche.com.br/spcast_lapa.jpg"
+  },
+  {
+    name: "Studio Teia Tamanduateí",
+    address: "Av. Presidente Wilson, 4801 - Vila Independencia, São Paulo",
+    description: "Estúdio de gravação moderno, amplo e profissional integrado ao Teia Tamanduateí. Oferece equipamentos de alta fidelidade sonora e gravação em vídeo impecável para episódios marcantes e inesquecíveis.",
+    image: "http://agencia.curtatche.com.br/spcast_tamanduatei.jpg"
   }
 ];
 

@@ -773,7 +773,7 @@ export default function App() {
                     <span>YouTube</span>
                   </a>
                   <a
-                    href="https://www.tiktok.com/@cafecomintenert"
+                    href="https://www.tiktok.com/@cafecominternet"
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center gap-2 px-4.5 py-2.5 rounded-full bg-black text-white text-xs font-bold hover:scale-[1.04] active:scale-95 duration-200 transition-all shadow-md shadow-black/15 border border-neutral-800 cursor-pointer"
@@ -1368,7 +1368,7 @@ export default function App() {
                     <Youtube className="w-4 h-4 text-[#ff0000]" />
                     <span>YouTube</span>
                   </a>
-                  <a href="https://www.tiktok.com/@cafecomintenert" target="_blank" rel="noreferrer" className="flex items-center gap-2 p-2 rounded-xl bg-white/5 hover:bg-neutral-800/40 text-white hover:text-white text-[11px] font-bold transition-all border border-white/10 hover:border-white/35">
+                  <a href="https://www.tiktok.com/@cafecominternet" target="_blank" rel="noreferrer" className="flex items-center gap-2 p-2 rounded-xl bg-white/5 hover:bg-neutral-800/40 text-white hover:text-white text-[11px] font-bold transition-all border border-white/10 hover:border-white/35">
                     <Music className="w-4 h-4 text-neutral-200" />
                     <span>TikTok</span>
                   </a>
@@ -1508,7 +1508,7 @@ export default function App() {
             <Youtube className="w-4 h-4 text-[#ff0000]" />
             YouTube
           </a>
-          <a href="https://www.tiktok.com/@cafecomintenert" target="_blank" rel="noreferrer" className="hover:text-white hover:bg-black hover:shadow-md px-3.5 py-2 rounded-full border border-neutral-300/35 hover:border-transparent transition-all flex items-center gap-1.5 cursor-pointer">
+          <a href="https://www.tiktok.com/@cafecominternet" target="_blank" rel="noreferrer" className="hover:text-white hover:bg-black hover:shadow-md px-3.5 py-2 rounded-full border border-neutral-300/35 hover:border-transparent transition-all flex items-center gap-1.5 cursor-pointer">
             <Music className="w-4 h-4" />
             TikTok
           </a>
